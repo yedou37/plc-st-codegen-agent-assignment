@@ -33,7 +33,7 @@
   },
   "compiler": {
     "command": ["{python}", "{repo_root}/tools/codesys_compile.py", "--source", "{source}", "--task-id", "{task_id}", "--output", "{output}"],
-    "command_note": "Uses the installed CODESYS profile and Control Win x64 device. Set CODESYS_EXE or CODESYS_PROFILE to override discovery. The adapter writes full compiler diagnostics to the output path.",
+    "command_note": "Builds an offline Control Win x64 application with explicit calls to the generated POUs. PASS requires a boot application and compiled signatures. Set CODESYS_EXE or CODESYS_PROFILE to override discovery.",
     "target": "CODESYS V3.5 SP22 Patch 4 / Control Win x64"
   },
   "experiment": {"seed": 20261108, "temperature": 0, "repair_limit": 2, "pilot_max_tokens": 768, "task_file": "../dataset/tasks.json"}

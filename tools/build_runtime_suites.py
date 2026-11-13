@@ -46,8 +46,11 @@ V["P04"] = {"task_id":"P04", "cases":[
     c("P04-T1", a({"VISCOSITY_OK":False,"PASTE_E_STOP_NC":True,"DebounceTime":"T#100ms","CycleTime":"T#50ms"},
                    {"VFD_RUN":False,"PUMP_RUNTIME_ACC":"LTIME#0ns","PUMP_MAINT_DUE":False})),
     c("P04-T2", a({"VISCOSITY_OK":True}, {"VFD_RUN":False}, cycles=1)),
-    c("P04-T3", a({"VISCOSITY_OK":True}, {"VFD_RUN":True}, cycles=3),
-      a({"PASTE_E_STOP_NC":False}, {"VFD_RUN":False}))
+    c("P04-T3", a({"VISCOSITY_OK":False}, {"VFD_RUN":False,"PUMP_RUNTIME_ACC":"LTIME#0ns"}),
+      a({"VISCOSITY_OK":True}, {"VFD_RUN":False,"PUMP_RUNTIME_ACC":"LTIME#0ns"}),
+      a({}, {"VFD_RUN":True,"PUMP_RUNTIME_ACC":"LTIME#50ms"}),
+      a({}, {"VFD_RUN":True,"PUMP_RUNTIME_ACC":"LTIME#100ms"}),
+      a({"PASTE_E_STOP_NC":False}, {"VFD_RUN":False,"PUMP_RUNTIME_ACC":"LTIME#100ms"}))
 ]}
 V["P05"] = {"task_id":"P05", "cases":[
     c("P05-T1", a({"Gap_Exceeded":True,"Weld_E_Stop_NC":True,"DebounceTime":"T#100ms"},
@@ -67,12 +70,12 @@ V["P06"] = {"task_id":"P06", "cases":[
 ]}
 V["P07"] = {"task_id":"P07", "declarations":["pumpGroup : ARRAY[1..5] OF ST_Pump"],
     "call":"dut(pumpGroup := pumpGroup);", "cases":[
-    c("P07-T1", a({"mode":False,"start":True,"@pumpGroup[1].selection":False,"@pumpGroup[2].selection":True,
-                    "@pumpGroup[3].selection":False,"@pumpGroup[4].selection":False,"@pumpGroup[5].selection":False},
-                   {"@pumpGroup[2].RunComd":True,"@pumpGroup[1].RunComd":False})),
-    c("P07-T2", a({"start":False,"mode":True,"@pumpGroup[1].priority":1,"@pumpGroup[2].priority":5,
+    c("P07-T1", a({"mode":False,"start":True,"@pumpGroup[1].selection":True,"@pumpGroup[2].selection":True,
+                    "@pumpGroup[3].selection":True,"@pumpGroup[4].selection":True,"@pumpGroup[5].selection":False},
+                   {f"@pumpGroup[{i}].RunComd":i<5 for i in range(1, 6)})),
+    c("P07-T2", a({"start":True,"mode":True,"@pumpGroup[1].priority":1,"@pumpGroup[2].priority":5,
                     "@pumpGroup[3].priority":3,"@pumpGroup[4].priority":4,"@pumpGroup[5].priority":2},
-                   {"@pumpGroup[2].RunComd":True,"@pumpGroup[4].RunComd":True,"@pumpGroup[5].RunComd":True})),
+                   {f"@pumpGroup[{i}].RunComd":i in (2, 3, 4) for i in range(1, 6)})),
     c("P07-T3", a({"stop":True}, {"@pumpGroup[1].RunComd":False,"@pumpGroup[2].RunComd":False,
                                    "@pumpGroup[3].RunComd":False,"@pumpGroup[4].RunComd":False,"@pumpGroup[5].RunComd":False}))
 ]}
@@ -120,10 +123,10 @@ V["P12"] = {"task_id":"P12", "cases":[
     c("P12-T1", a({"THICKNESS_FAULT":True,"THICKNESS_SIGNAL_VALID":True,"CUTTING_RUN":True,
                     "FaultTimestamp":123,"CycleTime":"T#50ms"},
                    {"THICKNESS_ALARM":True,"Slab_Fault_Counter":1,"Slab_Fault_History[0]":123})),
-    c("P12-T2", a({"THICKNESS_FAULT":False}, {"THICKNESS_ALARM":True}, cycles=1),
-      a({}, {"THICKNESS_ALARM":True}, cycles=10)),
+    c("P12-T2", a({"THICKNESS_FAULT":False}, {"THICKNESS_ALARM":True,"Slab_Runtime_Accumulator":"LTIME#50ms"}),
+      a({}, {"THICKNESS_ALARM":True,"Slab_Runtime_Accumulator":"LTIME#400ms"}, cycles=7)),
     c("P12-T3", a({"THICKNESS_SIGNAL_VALID":False,"THICKNESS_FAULT":True},
-                   {"THICKNESS_ALARM":False,"Slab_Fault_Counter":1}))
+                   {"THICKNESS_ALARM":False,"Slab_Fault_Counter":1,"Slab_Runtime_Accumulator":"LTIME#400ms"}))
 ]}
 V["P13"] = {"task_id":"P13", "cases":[
     c("P13-T1", a({"OCCUPANCY_DETECTED":True,"ENERGY_SAVING_MODE":False,"HVAC_MODE_SELECTOR":0},
@@ -192,12 +195,26 @@ V["P19"] = {"task_id":"P19", "cases":[
       a({"ReleaseLimitSwitch":False,"UpLimitSwitch":True}), a({"UpLimitSwitch":False,"LeftLimitSwitch":True},
                                                                     {"MoveDown":False,"MoveUp":False,"MoveLeft":False,"MoveRight":False}))
 ]}
+def p20_weigh(weight, expected):
+    return [
+        a({"Mode":False,"ForwardButton":False,"ReverseButton":False,"SensorFeed":False,
+           "SensorWash":False,"SensorWeight":False,"SensorOutput":False,
+           "washComplete":False,"weightComplete":False}),
+        a({"Mode":True,"SensorFeed":True}),
+        a({"SensorFeed":False,"SensorWash":True}),
+        a({"washComplete":True}, {"MotorForward":True}),
+        a({"SensorWash":False,"washComplete":False,"SensorWeight":True}),
+        a({"weight":weight,"weightComplete":True}, expected),
+    ]
+
+
 V["P20"] = {"task_id":"P20", "cases":[
-    c("P20-T1", a({"Mode":False,"ForwardButton":True,"ReverseButton":True}, {"MotorForward":False,"MotorReverse":False})),
-    c("P20-T2", a({"ForwardButton":False,"ReverseButton":False,"weight":100.0}, {"firingTemp":500.0}),
-      a({"weight":150.0}, {"firingTemp":525.0}), a({"weight":200.0}, {"firingTemp":550.0})),
-    c("P20-T3", a({"Mode":True,"SensorWeight":True,"weight":99.0,"weightComplete":True}, {"kick":True}),
-      a({"SensorWeight":False,"weight":201.0}), a({"SensorWeight":True,"weight":201.0,"weightComplete":True}, {"kick":True}))
+    c("P20-T1", a({"Mode":False,"SensorOutput":True,"SensorWash":True,
+                    "ForwardButton":True,"ReverseButton":True}, {"MotorForward":False,"MotorReverse":False}),
+      a({"ReverseButton":False}, {"MotorForward":True,"MotorReverse":False})),
+    c("P20-T2", *p20_weigh(100.0, {"firingTemp":500.0}),
+      *p20_weigh(150.0, {"firingTemp":525.0}), *p20_weigh(200.0, {"firingTemp":550.0})),
+    c("P20-T3", *p20_weigh(99.0, {"kick":True}), *p20_weigh(201.0, {"kick":True}))
 ]}
 
 V["S01"] = {"task_id":"S01", "cases":[

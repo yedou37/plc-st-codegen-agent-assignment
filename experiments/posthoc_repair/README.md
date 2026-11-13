@@ -1,5 +1,7 @@
 # Post-hoc CODESYS recheck
 
+> Historical diagnostics. This adapter did not call each candidate. Use the [linked rebuild of all 120 outputs](../linked_compile_review/summary.json) for the current offline assessment.
+
 The original experiment matrix remains unchanged in `../results.csv`: it
 records 90 PASS and 30 FAIL under the first compiler adapter. The compiler
 adapter had four project-input issues that could report valid ST as failed:

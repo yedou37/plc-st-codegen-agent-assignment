@@ -13,6 +13,7 @@ from src.static_check import check_source, extract_st
 from src.adapters import chat_completion
 from dmxapi_metered_proxy import BudgetLedger, _collect_usage
 from run_st_tests import normalize_strucpp_source
+from codesys_linked import prepare, SourceError
 
 class DatasetTests(unittest.TestCase):
     @classmethod
@@ -54,6 +55,26 @@ class DatasetTests(unittest.TestCase):
                 self.assertTrue(task["assumptions"])
 
 class SourceAdapterTests(unittest.TestCase):
+    def test_compile_harness_calls_each_unit_and_binds_open_arrays(self):
+        source = ("FUNCTION_BLOCK Candidate\nVAR_IN_OUT\n values : ARRAY[*] OF DINT;\n"
+                  "END_VAR\n values[1] := Helper(1);\nEND_FUNCTION_BLOCK\n"
+                  "FUNCTION Helper : DINT\nVAR_INPUT\n x : DINT;\nEND_VAR\n"
+                  " Helper := x;\nEND_FUNCTION\n")
+        job = prepare(source, "manual")
+        self.assertEqual([u["name"] for u in job["units"]], ["Candidate", "Helper"])
+        self.assertIn("ARRAY[1..5] OF DINT", job["declaration"])
+        self.assertEqual(job["calls"], [
+            "AuditHarnessInstance0(values := AuditHarnessArg0_0);",
+            "AuditHarnessInstance1 := Helper(x := AuditHarnessArg1_0);",
+        ])
+
+    def test_compile_harness_rejects_truncated_and_extra_source(self):
+        valid = "PROGRAM Candidate\nVAR\n x : INT;\nEND_VAR\nx := 1;\nEND_PROGRAM\n"
+        for source in (valid.removesuffix("END_PROGRAM\n"), valid + "Unexpected text",
+                       valid.replace("x := 1;", "(* no implementation *)")):
+            with self.subTest(source=source), self.assertRaises(SourceError):
+                prepare(source, "manual")
+
     def test_static_precheck_is_not_compiler(self):
         good="FUNCTION_BLOCK FB_Test VAR x: BOOL; END_VAR IF x THEN x := FALSE; END_IF END_FUNCTION_BLOCK"
         bad="FUNCTION_BLOCK FB_Test VAR x: BOOL; END_FUNCTION_BLOCK"

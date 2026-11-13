@@ -1,0 +1,36 @@
+{
+  "scope": "Offline linked builds of archived final sources",
+  "model_requests": 0,
+  "planned": 120,
+  "recorded": 120,
+  "counts": {
+    "INVALID_SOURCE": 65,
+    "PASS": 52,
+    "FAIL": 3
+  },
+  "by_condition": {
+    "Pi coding-agent single-shot + gpt-6.1-sol": {
+      "INVALID_SOURCE": 12,
+      "PASS": 18
+    },
+    "Self-developed harness + gpt-6.1-sol": {
+      "INVALID_SOURCE": 14,
+      "PASS": 16
+    },
+    "Pi coding-agent single-shot + deepseek-v4.1-flash-1017": {
+      "PASS": 9,
+      "INVALID_SOURCE": 19,
+      "FAIL": 2
+    },
+    "Self-developed harness + deepseek-v4.1-flash-1017": {
+      "PASS": 9,
+      "INVALID_SOURCE": 20,
+      "FAIL": 1
+    }
+  },
+  "sources_sha256_verified": 120,
+  "codesys_profile": "CODESYS V3.5 SP22 Patch 4",
+  "device_version": "3.5.22.40",
+  "ide_attempts": 55,
+  "legacy_pass_disagreements": 44
+}

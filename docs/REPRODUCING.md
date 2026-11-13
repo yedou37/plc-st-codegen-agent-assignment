@@ -90,14 +90,13 @@ py tools/codesys_compile.py `
   --output experiments/local_runs/P02_codesys_compile.json
 ```
 
-这条命令是单个 POU 的离线项目编译，不会启动 PLC 扫描。P07/P17 的 DUT 在 `st/support_types/`。原始矩阵日志位于 `st/runs/`；原始失败项的修正适配器复测在 `experiments/posthoc_repair/`。如要重跑 30 格复测，使用：
+该命令在离线应用中挂接候选 POU，通过需要生成非空启动应用并取得候选及调用程序的编译签名。P07、P08、P17 的 DUT 在 `st/support_types/`。统一复测读取 `experiments/results.csv` 定位归档源码，并输出逐格哈希、调用和诊断。
 
 ```powershell
-py tools/posthoc_recheck_failures.py `
-  --output-dir experiments/local_runs/posthoc_repair
+py tools/recheck_linked_matrix.py --output-dir experiments/local_runs/linked_compile_recheck
 ```
 
-复测脚本读取原始 `experiments/results.csv` 和各单元源码；它不修改这些源码。输出目录应使用 `experiments/local_runs/` 下的新路径，避免覆盖随仓库交付的证据。P02 冒烟驱动与下一小节的自研 Agent 全题场景批测是两套独立测试。
+`INVALID_SOURCE` 表示源码未满足完整性要求，`FAIL` 表示 CODESYS 报错，`UNSUPPORTED_BINDING` 表示无法构造实参。工具异常和超时分别记录。交付结果见 `experiments/linked_compile_review/`。
 
 ### P02 CODESYS Control Win 运行时冒烟测试
 
@@ -126,7 +125,7 @@ finally {
 
 ### 自研 Agent 两模型 × 30 题 runtime 场景测试
 
-`tests/structured_text/runtime_suites/` 中的 30 个 JSON 各包含该题的数据集场景输入、扫描次数和断言；`tools/build_runtime_suites.py` 可从数据集重新生成，总计 112 个场景。`tools/run_codesys_runtime_suite.py` 负责为候选 ST 建立工程、编译、下载并在本机 Control Win 的 50 ms 周期任务中执行。批处理器 `tools/run_self_runtime_batch.py` 从正式 `experiments/results.csv` 读取自研 Agent 的 GPT/DeepSeek 两组输出，只读该文件；正式编译失败的候选不会运行。它也不会调用模型 API。
+`tests/structured_text/runtime_suites/` 中的 30 个 JSON 各包含该题的数据集场景输入、扫描次数和断言；`tools/build_runtime_suites.py` 可从数据集重新生成，总计 112 个场景。`tools/run_codesys_runtime_suite.py` 负责为候选 ST 建立工程、编译、下载并在本机 Control Win 的 50 ms 周期任务中执行。批处理器 `tools/run_self_runtime_batch.py` 从正式 `experiments/results.csv` 读取自研 Agent 的 GPT/DeepSeek 两组输出，只读该文件；候选须在新版离线复测通过并匹配源码哈希才进入 runtime。它也不会调用模型 API。
 
 在 PowerShell 中从仓库根目录运行。先启动系统托盘中的 **CODESYS Control Win V3 x64**，再安全输入 runtime 测试账号并运行：
 
@@ -137,7 +136,7 @@ $runtimePasswordSecure = Read-Host 'CODESYS test password' -AsSecureString
 $runtimePasswordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($runtimePasswordSecure)
 try {
   $env:CODESYS_TEST_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($runtimePasswordPointer)
-  py tools/run_self_runtime_batch.py --timeout 900
+  py tools/run_self_runtime_batch.py --timeout 900 --linked-results experiments/linked_compile_review/diagnostics.jsonl
 } finally {
   [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($runtimePasswordPointer)
   Remove-Item Env:CODESYS_TEST_USER -ErrorAction SilentlyContinue
@@ -145,7 +144,7 @@ try {
 }
 ```
 
-每次运行会在被 Git 忽略的 `experiments/local_runs/codesys_runtime_suite/` 下保存工程、编译日志、实测输出、进度和汇总。可用 `--task P06 --task S10` 或 `--model gpt-6.1-sol` 限定重跑范围。`RUNTIME_PASS` 表示该输出的套件用例全部在 runtime 扫描中通过；`RUNTIME_FAIL` 表示至少一个 runtime 断言失败；正式离线编译失败的输出和测试工程编译失败的输出均未执行场景，必须分别记为未运行。当前综合结果：20/60 个输出全场景通过，3/60 有 runtime 断言失败，37/60 未完成 runtime（12 个正式离线编译失败，25 个测试工程集成编译失败）。场景分母 224 = 112 × 2；实际执行场景的通过率 82/88、不同场景 ID 覆盖 56/112，不代表 224 格总通过率，也不能并入正式 120 格离线编译矩阵。P06 与 S10 的测试序列在复测前修正了计时边界和状态顺序，最终汇总记录使用复测结果。
+每次运行会在被 Git 忽略的 `experiments/local_runs/codesys_runtime_suite/` 下保存工程、编译日志、实测输出、进度和汇总。可用 `--task P06 --task S10` 或 `--model gpt-6.1-sol` 限定重跑范围。`RUNTIME_PASS` 表示该输出的套件用例全部在 runtime 扫描中通过；`RUNTIME_FAIL` 表示至少一个 runtime 断言失败；正式离线编译失败的输出和测试工程编译失败的输出均未执行场景，必须分别记为未运行。2026-11-10 历史结果（按当时的向量和适配器）：20/60 个输出全场景通过，3/60 有 runtime 断言失败，37/60 未完成 runtime（12 个正式离线编译失败，25 个测试工程集成编译失败）。场景分母 224 = 112 × 2；实际执行场景的通过率 82/88、不同场景 ID 覆盖 56/112，不代表 224 格总通过率，也不能并入正式 120 格离线编译矩阵。P06 与 S10 的测试序列在复测前修正了计时边界和状态顺序，最终汇总记录使用复测结果。
 
 ## 6. 可选：运行新模型实验
 

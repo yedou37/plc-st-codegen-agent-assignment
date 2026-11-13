@@ -25,12 +25,22 @@ def compile_st(source_path: Path, task_id: str, config_path: Path | None = None)
     try:
         cp = subprocess.run(cmd, text=True, capture_output=True, timeout=180, check=False, cwd=str(root))
         elapsed = round((time.perf_counter()-start)*1000)
-        return {"status":"PASS" if cp.returncode == 0 else "FAIL", "return_code":cp.returncode,
+        status = "PASS" if cp.returncode == 0 else "FAIL"
+        if any(Path(arg).name == "codesys_compile.py" for arg in cmd):
+            try:
+                status = json.loads(cp.stdout)["status"]
+                if status not in {"PASS", "FAIL", "INVALID_SOURCE", "UNSUPPORTED_BINDING", "TIMEOUT", "UNAVAILABLE"}:
+                    status = "UNAVAILABLE"
+                if status == "PASS" and cp.returncode != 0:
+                    status = "UNAVAILABLE"
+            except (ValueError, KeyError, TypeError):
+                status = "UNAVAILABLE"
+        return {"status":status, "return_code":cp.returncode,
                 "stdout":cp.stdout[-12000:], "stderr":cp.stderr[-12000:], "elapsed_ms":elapsed,
                 "compiler":" ".join(cmd)}
     except subprocess.TimeoutExpired as exc:
         return {"status":"TIMEOUT", "return_code":None, "stdout":str(exc.stdout or ""),
-                "stderr":str(exc.stderr or ""), "elapsed_ms":120000, "compiler":" ".join(cmd)}
+                "stderr":str(exc.stderr or ""), "elapsed_ms":180000, "compiler":" ".join(cmd)}
     except OSError as exc:
         return {"status":"UNAVAILABLE", "return_code":None, "stdout":"", "stderr":str(exc),
                 "elapsed_ms":0, "compiler":" ".join(cmd)}

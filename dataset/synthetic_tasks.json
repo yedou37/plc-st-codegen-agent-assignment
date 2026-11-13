@@ -7,14 +7,15 @@
     "assumptions": "LevelHigh and LevelLow are mutually exclusive hysteresis flags. AutoEnable FALSE immediately stops both pumps and clears demand. CycleTime is the elapsed time added to the active pump's minimum-on timer. Fault override bypasses minimum-on time. A power-up begins with no demand and lead pump 1.",
     "specs": [
       "G(!(Pump1Run & Pump2Run))",
-      "G(Pump1Fault -> !Pump1Run & (demand & !Pump2Fault -> X(Pump2Run)))",
-      "G(Pump2Fault -> !Pump2Run & (demand & !Pump1Fault -> X(Pump1Run)))",
-      "G(!AutoEnable -> X(!Pump1Run & !Pump2Run & !demand))",
-      "G(AutoEnable & LevelHigh & healthyPumpAvailable -> X(demand & (Pump1Run | Pump2Run)))",
-      "G((Pump1Run & !Pump1Fault | Pump2Run & !Pump2Fault) & !activePumpMinOn2sDone -> X(Pump1Run | Pump2Run))",
-      "G(demand & Pump1Fault & Pump2Fault -> X(!Pump1Run & !Pump2Run & NoAvailablePump))",
-      "G(!(demand & Pump1Fault & Pump2Fault) -> X(!NoAvailablePump))",
-      "G(demandCycleComplete -> X(leadPump = !prevLeadPump))"
+      "G(Pump1Fault -> !Pump1Run)",
+      "G(Pump2Fault -> !Pump2Run)",
+      "G(!AutoEnable -> (!Pump1Run & !Pump2Run & !demand))",
+      "G((AutoEnable & LevelHigh & healthyPumpAvailable) -> (demand & (Pump1Run | Pump2Run)))",
+      "G((AutoEnable & ((prevPump1Run & !Pump1Fault) | (prevPump2Run & !Pump2Fault)) & !activePumpMinOn2sDone) -> (Pump1Run | Pump2Run))",
+      "G(NoAvailablePump <-> (demand & Pump1Fault & Pump2Fault))",
+      "G((AutoEnable & demand & prevPump1Run & Pump1Fault & !Pump2Fault) -> Pump2Run)",
+      "G((AutoEnable & demand & prevPump2Run & Pump2Fault & !Pump1Fault) -> Pump1Run)",
+      "G(demandCycleComplete -> (leadIsPump1 <-> !prevLeadIsPump1))"
     ],
     "tests": [
       "Idle: both pumps off, demand clear, lead pump 1.",
@@ -33,15 +34,15 @@
     "assumptions": "PartAtEntry and Start fault-clear events are rising-edge detected. Stop is level-sensitive and dominates Start. E-stop dominates all states. CycleTime is accumulated by the reverse timer. A jam that remains active after the 1 s reverse interval is a new jam event when forward motion is retried.",
     "specs": [
       "G(!(ConveyorForward & ConveyorReverse))",
-      "G((Stop | !EStopOK | FaultLatched) -> X(!ConveyorForward & !ConveyorReverse))",
-      "G(!EStopOK -> X(FaultLatched))",
-      "G(Jam & ConveyorForward -> !ConveyorForward & X(!ConveyorForward))",
-      "G(ConveyorReverse & !reverse1sDone -> X(ConveyorReverse))",
-      "G(reverse1sDone & RetryCount <= 2 & !Jam & Start & !Stop & EStopOK -> X(ConveyorForward & !ConveyorReverse))",
+      "G((Stop | !EStopOK | FaultLatched) -> (!ConveyorForward & !ConveyorReverse))",
+      "G(!EStopOK -> FaultLatched)",
+      "G((Jam & prevConveyorForward) -> !ConveyorForward)",
+      "G((prevConveyorReverse & !reverse1sDone & !Stop & EStopOK & !FaultLatched & !PartAtExit) -> ConveyorReverse)",
+      "G((prevConveyorReverse & reverse1sDone & !Jam & Start & !Stop & EStopOK & !FaultLatched & !PartAtExit) -> (ConveyorForward & !ConveyorReverse))",
       "G(RetryCount <= 2)",
-      "G(PartAtExit -> X(RetryCount=0 & !partActive))",
-      "G(RetryCount=2 & jamEvent -> X(FaultLatched & !ConveyorForward & !ConveyorReverse))",
-      "G(FaultLatched & !validFaultClear -> X(FaultLatched))"
+      "G(PartAtExit -> (RetryCount=0 & !partActive))",
+      "G((prevRetryCount=2 & jamEvent & !PartAtExit & !Stop & EStopOK) -> (FaultLatched & !ConveyorForward & !ConveyorReverse))",
+      "G((prevFaultLatched & !validFaultClear) -> FaultLatched)"
     ],
     "tests": [
       "PartAtEntry with Start: forward begins; no reverse output.",
@@ -58,13 +59,13 @@
     "requirements": "Inputs: Level REAL (0..100 percent), StartPermit BOOL, HighHigh BOOL, ResetAlarm BOOL. Outputs: InletValve BOOL, HighLevelAlarm BOOL. Open the inlet valve when Level<=30 and StartPermit is TRUE. Keep it open until Level>=70. Dropping StartPermit or asserting HighHigh closes the valve immediately. HighHigh latches HighLevelAlarm. A rising edge of ResetAlarm clears the alarm only when HighHigh is FALSE and Level<70; a latched alarm inhibits refilling until reset. A sensor value outside 0..100 is invalid and closes the valve.",
     "assumptions": "Valve command is non-retentive across power-up; alarm initializes clear. Level thresholds are inclusive at 30 and 70. Invalid level inhibits the valve but does not independently latch HighLevelAlarm.",
     "specs": [
-      "G((HighHigh | Level<0 | Level>100 | !StartPermit | HighLevelAlarm) -> X(!InletValve))",
+      "G((HighHigh | Level<0 | Level>100 | !StartPermit | HighLevelAlarm) -> !InletValve)",
       "G(HighHigh -> X(HighLevelAlarm))",
       "G(HighLevelAlarm & !(resetAlarmEdge & !HighHigh & Level<70) -> X(HighLevelAlarm))",
       "G(resetAlarmEdge & !HighHigh & Level<70 -> X(!HighLevelAlarm))",
-      "G(Level<=30 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm -> X(InletValve))",
-      "G(InletValve & Level<70 & StartPermit & !HighHigh & validLevel -> X(InletValve))",
-      "G(Level>=70 -> X(!InletValve))"
+      "G((Level<=30 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm) -> InletValve)",
+      "G((prevInletValve & Level<70 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm) -> InletValve)",
+      "G(Level>=70 -> !InletValve)"
     ],
     "tests": [
       "Level 25 with permit and no alarm: valve opens; at level 50 it stays open.",
@@ -81,18 +82,18 @@
     "requirements": "Inputs: StartBatch BOOL, EStopOK BOOL, WeightA REAL, WeightB REAL, TargetA REAL, TargetB REAL, MixTime TIME, CycleTime TIME, MixComplete BOOL, DischargePermit BOOL, Reset BOOL. Outputs: ValveA BOOL, ValveB BOOL, Mixer BOOL, OutletValve BOOL, BatchFault BOOL. On a StartBatch rising edge, accept only positive targets and MixTime>0. Fill A until WeightA>=TargetA, then fill B until WeightB>=TargetB. Run Mixer for MixTime, then stop Mixer and wait for MixComplete. Open OutletValve only after MixComplete and when DischargePermit is TRUE. E-stop immediately closes all outputs and latches BatchFault. An invalid recipe latches BatchFault. A Reset rising edge clears BatchFault only when EStopOK is TRUE and all outputs are off.",
     "assumptions": "Weights are monotonic during filling. Fill valves are mutually exclusive; Mixer and OutletValve are interlocked with both fill valves. One batch is active at a time. CycleTime is accumulated for the mixing timer. MixComplete is an operator/process confirmation that may arrive after the timed mix ends.",
     "specs": [
-      "G(!EStopOK -> !ValveA & !ValveB & !Mixer & !OutletValve & X(BatchFault))",
-      "G(startBatchEdge & (!validTargets | MixTime<=T#0s) -> X(BatchFault & stage=IDLE))",
+      "G(!EStopOK -> (!ValveA & !ValveB & !Mixer & !OutletValve & BatchFault))",
+      "G((EStopOK & prevStage=IDLE & startBatchEdge & (!validTargets | MixTime<=T#0s)) -> (BatchFault & stage=IDLE))",
       "G(ValveA -> !ValveB & !Mixer & !OutletValve)",
       "G(ValveB -> !ValveA & !Mixer & !OutletValve)",
       "G(Mixer -> !ValveA & !ValveB & !OutletValve)",
-      "G(stage=FILL_A & WeightA>=TargetA -> X(stage=FILL_B & !ValveA & ValveB))",
-      "G(stage=FILL_B & WeightB>=TargetB -> X(stage=MIX))",
-      "G(stage=MIX & !mixTimeDone -> Mixer)",
-      "G(mixTimeDone -> X(!Mixer & stage=WAIT_MIX_COMPLETE))",
-      "G(stage=WAIT_MIX_COMPLETE & !(MixComplete & DischargePermit) -> !OutletValve)",
-      "G(stage=WAIT_MIX_COMPLETE & MixComplete & DischargePermit -> X(OutletValve))",
-      "G(resetEdge & EStopOK & !ValveA & !ValveB & !Mixer & !OutletValve -> X(!BatchFault))"
+      "G((EStopOK & !BatchFault & prevStage=FILL_A & WeightA>=TargetA) -> (stage=FILL_B & !ValveA & ValveB))",
+      "G((EStopOK & !BatchFault & prevStage=FILL_B & WeightB>=TargetB) -> stage=MIX)",
+      "G((EStopOK & !BatchFault & stage=MIX & !mixTimeDone) -> Mixer)",
+      "G((EStopOK & !BatchFault & prevStage=MIX & mixTimeDone) -> (!Mixer & stage=WAIT_MIX_COMPLETE))",
+      "G((stage=WAIT_MIX_COMPLETE & !(MixComplete & DischargePermit)) -> !OutletValve)",
+      "G((EStopOK & !BatchFault & prevStage=WAIT_MIX_COMPLETE & MixComplete & DischargePermit) -> OutletValve)",
+      "G((resetEdge & EStopOK & !startBatchEdge & !prevValveA & !prevValveB & !prevMixer & !prevOutletValve) -> !BatchFault)"
     ],
     "tests": [
       "Valid start: A fills then B fills; each valve closes at its target.",
@@ -112,15 +113,15 @@
       "G(Fan1 -> !Fan1Fault)",
       "G(Fan2 -> !Fan2Fault)",
       "G(invalidTemperature | bothFansFaulted -> X(CoolingAlarm))",
-      "G((invalidTemperature | !Enable) -> X(!Fan1 & !Fan2))",
-      "G(stage=0 & Enable & Temperature>=35 & healthyFanAvailable -> X(stage=1))",
-      "G(stage=1 & Temperature>=45 & twoHealthyFansAvailable -> X(stage=2))",
-      "G(stage=2 & Temperature<42 & fan2MinOn10sDone -> X(stage=1))",
-      "G(stage=1 & Temperature<32 & activeFanMinOn10sDone -> X(stage=0))",
-      "G(Fan1 & !Fan1MinOn10sDone & !Fan1Fault -> X(Fan1))",
-      "G(Fan2 & !Fan2MinOn10sDone & !Fan2Fault -> X(Fan2))",
-      "G(!Fan1 & !Fan1MinOff10sDone & !invalidTemperature & Enable -> X(!Fan1))",
-      "G(!Fan2 & !Fan2MinOff10sDone & !invalidTemperature & Enable -> X(!Fan2))"
+      "G((invalidTemperature | !Enable) -> (!Fan1 & !Fan2))",
+      "G((prevStage=0 & Enable & !invalidTemperature & Temperature>=35 & Temperature<45) -> stage=1)",
+      "G((Enable & !invalidTemperature & Temperature>=45) -> stage=2)",
+      "G((prevStage=2 & Enable & !invalidTemperature & Temperature<42) -> stage=1)",
+      "G((prevStage=1 & Enable & !invalidTemperature & Temperature<32) -> stage=0)",
+      "G((prevFan1 & !Fan1MinOn10sDone & !Fan1Fault & !invalidTemperature & Enable) -> Fan1)",
+      "G((prevFan2 & !Fan2MinOn10sDone & !Fan2Fault & !invalidTemperature & Enable) -> Fan2)",
+      "G((!prevFan1 & !Fan1MinOff10sDone) -> !Fan1)",
+      "G((!prevFan2 & !Fan2MinOff10sDone) -> !Fan2)"
     ],
     "tests": [
       "Temperature 35 C from off requests one healthy fan; at 45 C requests the second.",
@@ -184,15 +185,15 @@
     "requirements": "Inputs: PartPresent BOOL, Defect BOOL, ConveyorRunning BOOL, CycleTime TIME, Reset BOOL. Outputs: RejectSolenoid BOOL, RejectCount UDINT. On each rising edge of Defect while a part is present and the conveyor is running, pulse RejectSolenoid for 300 ms and increment RejectCount once. Ignore repeated high scans for the same defect. Do not reject when no part is present or the conveyor is stopped. Reset clears the count but does not interrupt an active reject pulse.",
     "assumptions": "A new reject requires Defect to return FALSE before another rising edge. RejectCount saturates at UDINT maximum rather than wrapping. CycleTime is accumulated by the pulse timer; one scan is the timer resolution.",
     "specs": [
-      "G(RejectSolenoid -> PartPresent & ConveyorRunning)",
-      "G(defectRise & PartPresent & ConveyorRunning & RejectCount<UDINT_MAX -> X(RejectCount=prevCount+1))",
-      "G(defectRise & PartPresent & ConveyorRunning & RejectCount=UDINT_MAX -> X(RejectCount=UDINT_MAX))",
-      "G((!PartPresent | !ConveyorRunning) & defectRise -> X(RejectCount=prevCount & !RejectSolenoid))",
-      "G(RejectSolenoid & !pulse300msDone -> X(RejectSolenoid))",
-      "G(pulse300msDone -> X(!RejectSolenoid))",
-      "G(Reset -> X(RejectCount=0))",
-      "G(RejectSolenoid & Reset -> X(RejectSolenoid))",
-      "G(Defect & prevDefect -> X(RejectCount=prevCount))"
+      "G((RejectSolenoid & !prevRejectSolenoid) -> (defectRise & PartPresent & ConveyorRunning))",
+      "G((!Reset & defectRise & PartPresent & ConveyorRunning & prevCount<UDINT_MAX) -> RejectCount=prevCount+1)",
+      "G((!Reset & defectRise & PartPresent & ConveyorRunning & prevCount=UDINT_MAX) -> RejectCount=UDINT_MAX)",
+      "G((!Reset & !(defectRise & PartPresent & ConveyorRunning)) -> RejectCount=prevCount)",
+      "G((prevRejectSolenoid & !pulse300msDone) -> RejectSolenoid)",
+      "G((pulse300msDone & !(defectRise & PartPresent & ConveyorRunning)) -> !RejectSolenoid)",
+      "G(Reset -> RejectCount=0)",
+      "G((Reset & prevRejectSolenoid & !pulse300msDone) -> RejectSolenoid)",
+      "G((!Reset & Defect & prevDefect) -> RejectCount=prevCount)"
     ],
     "tests": [
       "Defect rising with part present and conveyor running: count increments once and a 300 ms pulse starts.",
@@ -232,16 +233,16 @@
     "difficulty": "medium",
     "title": "Heater Control with Deadband and Sensor Diagnostics",
     "requirements": "Inputs: Temperature REAL, Setpoint REAL, SensorValid BOOL, Enable BOOL, CycleTime TIME. Outputs: Heater BOOL, SensorFault BOOL. Turn Heater on when enabled and Temperature<=Setpoint-1 C. Keep the heater on through the deadband until Temperature>=Setpoint, at which point it turns off. If SensorValid is FALSE, Temperature is outside -20..150 C, or Setpoint is outside -20..150 C, turn the heater off and set SensorFault. SensorFault clears only after SensorValid is TRUE and both values are valid continuously for 2 s. Power-up initializes heater off and fault on until validation completes.",
-    "assumptions": "Setpoint and Temperature are interpreted in Celsius. CycleTime is accumulated by the continuous-validity timer. The deadband includes temperatures above Setpoint-1 and below Setpoint; if the heater is off in that interval, it remains off.",
+    "assumptions": "Setpoint and Temperature are interpreted in Celsius. validInputs means SensorValid is TRUE and both values are in range, regardless of Enable. CycleTime is accumulated by the continuous-validity timer. Heating is inhibited until any sensor fault clears. In the deadband the heater retains its previous command subject to the enable and fault interlocks.",
     "specs": [
       "G(Heater -> Enable & SensorValid & validTemperature & validSetpoint)",
-      "G(validInputs & Temperature<=Setpoint-1 -> X(Heater))",
-      "G(Heater & Temperature<Setpoint & validInputs -> X(Heater))",
-      "G(!Heater & Temperature>Setpoint-1 & Temperature<Setpoint & validInputs -> X(!Heater))",
-      "G(Temperature>=Setpoint -> X(!Heater))",
-      "G(!validInputs -> X(!Heater & SensorFault))",
-      "G(SensorFault & !validFor2s -> X(SensorFault))",
-      "G(validFor2s -> X(!SensorFault))",
+      "G((Enable & validInputs & !SensorFault & Temperature<=Setpoint-1) -> Heater)",
+      "G((prevHeater & Enable & validInputs & !SensorFault & Temperature<Setpoint) -> Heater)",
+      "G((!prevHeater & Temperature>Setpoint-1 & Temperature<Setpoint) -> !Heater)",
+      "G((!Enable | Temperature>=Setpoint | SensorFault) -> !Heater)",
+      "G(!validInputs -> (!Heater & SensorFault))",
+      "G((prevSensorFault & !validFor2s) -> SensorFault)",
+      "G((validInputs & validFor2s) -> !SensorFault)",
       "G(powerUp -> !Heater & SensorFault)"
     ],
     "tests": [

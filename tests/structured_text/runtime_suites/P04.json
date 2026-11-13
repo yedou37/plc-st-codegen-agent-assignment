@@ -41,11 +41,38 @@
       "steps": [
         {
           "set": {
+            "VISCOSITY_OK": false
+          },
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": false,
+            "PUMP_RUNTIME_ACC": "LTIME#0ns"
+          }
+        },
+        {
+          "set": {
             "VISCOSITY_OK": true
           },
-          "cycles": 3,
+          "cycles": 1,
           "expect": {
-            "VFD_RUN": true
+            "VFD_RUN": false,
+            "PUMP_RUNTIME_ACC": "LTIME#0ns"
+          }
+        },
+        {
+          "set": {},
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": true,
+            "PUMP_RUNTIME_ACC": "LTIME#50ms"
+          }
+        },
+        {
+          "set": {},
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": true,
+            "PUMP_RUNTIME_ACC": "LTIME#100ms"
           }
         },
         {
@@ -54,7 +81,8 @@
           },
           "cycles": 1,
           "expect": {
-            "VFD_RUN": false
+            "VFD_RUN": false,
+            "PUMP_RUNTIME_ACC": "LTIME#100ms"
           }
         }
       ],

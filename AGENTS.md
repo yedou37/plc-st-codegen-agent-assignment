@@ -8,6 +8,7 @@ This repository is a coursework benchmark with audited experimental evidence. Re
 - Put any new run output under `experiments/local_runs/`; Git ignores that directory. `experiments/run_matrix.py` defaults output CSVs and ST/compiler artifacts there. `tools/posthoc_recheck_failures.py` defaults to an ignored local output directory.
 - `tools/finalize_matrix.py` also defaults to `experiments/local_runs/finalized_matrix/`. Do not pass `--write-archive` unless the user explicitly asks to replace the official CSV and summary after reviewing the inputs.
 - Keep the original matrix and post-hoc recheck as separate populations. Never report their combined count as a uniform run with one adapter.
+- Use `experiments/linked_compile_review/` for the current offline evidence. The old build-only PASS records do not demonstrate candidate code generation. New runs go under `experiments/local_runs/`.
 - An offline CODESYS compile PASS is not PLC runtime, scan-cycle, or LTL verification. The separate self-agent runtime suite covered 88/224 model-scenario executions and 56/112 distinct scenario IDs; see `experiments/codesys_validation/self_agent_runtime_20261110.md`. Do not describe this partial run as full runtime coverage.
 
 ## Credentials and costs

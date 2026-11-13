@@ -16,7 +16,7 @@
 ## 重要口径
 
 - 正式矩阵共 120 格。首次编译为 77 PASS、39 FAIL、4 TIMEOUT；四个首次超时独立复编译后，最终矩阵状态为 **90 PASS、30 FAIL、0 个未结清 TIMEOUT**（3 个重试通过、1 个重试失败）。
-- 修正适配器后的 30/30 PASS 属于单独复测；不能改写或合并成新版 adapter 的 120/120 单次矩阵结果。
+- 历史 90/120 和 30/30 记录没有证明候选 POU 进入代码生成。当前离线判定见 [120 格统一复测](linked_compile_review/summary.json)。
 - `PASS` 均需结合所在文件的编译器和验证范围解释。CODESYS 离线编译不是 runtime；自研 Agent runtime 部分执行了 88/224 个模型-场景组合，覆盖 56/112 个场景 ID，仍有 136 个组合未执行，详见 `codesys_validation/self_agent_runtime_20261110.md`。
 - `tools/finalize_matrix.py` 读取归档 120 行矩阵、60 行 DeepSeek 恢复、4 个超时重试和所有归档 usage JSONL。它不读取 post-hoc 的 30 行复测表；两套结果仍分开。
 - 费用汇总脚本默认把重算后的 CSV 和 summary 写到 `experiments/local_runs/finalized_matrix/`，不覆盖正式结果。只有明确传入 `--write-archive` 才会重写正式 `results.csv` 和 `results_summary.json`；运行前应检查归档输入及 Git diff。

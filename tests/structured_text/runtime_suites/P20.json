@@ -7,12 +7,24 @@
         {
           "set": {
             "Mode": false,
+            "SensorOutput": true,
+            "SensorWash": true,
             "ForwardButton": true,
             "ReverseButton": true
           },
           "cycles": 1,
           "expect": {
             "MotorForward": false,
+            "MotorReverse": false
+          }
+        },
+        {
+          "set": {
+            "ReverseButton": false
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true,
             "MotorReverse": false
           }
         }
@@ -24,9 +36,53 @@
       "steps": [
         {
           "set": {
+            "Mode": false,
             "ForwardButton": false,
             "ReverseButton": false,
-            "weight": 100.0
+            "SensorFeed": false,
+            "SensorWash": false,
+            "SensorWeight": false,
+            "SensorOutput": false,
+            "washComplete": false,
+            "weightComplete": false
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "Mode": true,
+            "SensorFeed": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "SensorFeed": false,
+            "SensorWash": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "washComplete": true
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true
+          }
+        },
+        {
+          "set": {
+            "SensorWash": false,
+            "washComplete": false,
+            "SensorWeight": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "weight": 100.0,
+            "weightComplete": true
           },
           "cycles": 1,
           "expect": {
@@ -35,7 +91,53 @@
         },
         {
           "set": {
-            "weight": 150.0
+            "Mode": false,
+            "ForwardButton": false,
+            "ReverseButton": false,
+            "SensorFeed": false,
+            "SensorWash": false,
+            "SensorWeight": false,
+            "SensorOutput": false,
+            "washComplete": false,
+            "weightComplete": false
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "Mode": true,
+            "SensorFeed": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "SensorFeed": false,
+            "SensorWash": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "washComplete": true
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true
+          }
+        },
+        {
+          "set": {
+            "SensorWash": false,
+            "washComplete": false,
+            "SensorWeight": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "weight": 150.0,
+            "weightComplete": true
           },
           "cycles": 1,
           "expect": {
@@ -44,7 +146,53 @@
         },
         {
           "set": {
-            "weight": 200.0
+            "Mode": false,
+            "ForwardButton": false,
+            "ReverseButton": false,
+            "SensorFeed": false,
+            "SensorWash": false,
+            "SensorWeight": false,
+            "SensorOutput": false,
+            "washComplete": false,
+            "weightComplete": false
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "Mode": true,
+            "SensorFeed": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "SensorFeed": false,
+            "SensorWash": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "washComplete": true
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true
+          }
+        },
+        {
+          "set": {
+            "SensorWash": false,
+            "washComplete": false,
+            "SensorWeight": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "weight": 200.0,
+            "weightComplete": true
           },
           "cycles": 1,
           "expect": {
@@ -59,8 +207,51 @@
       "steps": [
         {
           "set": {
+            "Mode": false,
+            "ForwardButton": false,
+            "ReverseButton": false,
+            "SensorFeed": false,
+            "SensorWash": false,
+            "SensorWeight": false,
+            "SensorOutput": false,
+            "washComplete": false,
+            "weightComplete": false
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
             "Mode": true,
-            "SensorWeight": true,
+            "SensorFeed": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "SensorFeed": false,
+            "SensorWash": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "washComplete": true
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true
+          }
+        },
+        {
+          "set": {
+            "SensorWash": false,
+            "washComplete": false,
+            "SensorWeight": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
             "weight": 99.0,
             "weightComplete": true
           },
@@ -71,14 +262,51 @@
         },
         {
           "set": {
+            "Mode": false,
+            "ForwardButton": false,
+            "ReverseButton": false,
+            "SensorFeed": false,
+            "SensorWash": false,
             "SensorWeight": false,
-            "weight": 201.0
+            "SensorOutput": false,
+            "washComplete": false,
+            "weightComplete": false
           },
           "cycles": 1
         },
         {
           "set": {
-            "SensorWeight": true,
+            "Mode": true,
+            "SensorFeed": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "SensorFeed": false,
+            "SensorWash": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "washComplete": true
+          },
+          "cycles": 1,
+          "expect": {
+            "MotorForward": true
+          }
+        },
+        {
+          "set": {
+            "SensorWash": false,
+            "washComplete": false,
+            "SensorWeight": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
             "weight": 201.0,
             "weightComplete": true
           },

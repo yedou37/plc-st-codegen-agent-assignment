@@ -12,27 +12,30 @@
           "set": {
             "mode": false,
             "start": true,
-            "@pumpGroup[1].selection": false,
+            "@pumpGroup[1].selection": true,
             "@pumpGroup[2].selection": true,
-            "@pumpGroup[3].selection": false,
-            "@pumpGroup[4].selection": false,
+            "@pumpGroup[3].selection": true,
+            "@pumpGroup[4].selection": true,
             "@pumpGroup[5].selection": false
           },
           "cycles": 1,
           "expect": {
+            "@pumpGroup[1].RunComd": true,
             "@pumpGroup[2].RunComd": true,
-            "@pumpGroup[1].RunComd": false
+            "@pumpGroup[3].RunComd": true,
+            "@pumpGroup[4].RunComd": true,
+            "@pumpGroup[5].RunComd": false
           }
         }
       ],
-      "scenario": "Manual, selected pump 2, start edge: pump 2 runs; unselected pumps stop."
+      "scenario": "Manual, start held with pumps 1 through 4 selected: those four run; pump 5 stops."
     },
     {
       "id": "P07-T2",
       "steps": [
         {
           "set": {
-            "start": false,
+            "start": true,
             "mode": true,
             "@pumpGroup[1].priority": 1,
             "@pumpGroup[2].priority": 5,
@@ -42,13 +45,15 @@
           },
           "cycles": 1,
           "expect": {
+            "@pumpGroup[1].RunComd": false,
             "@pumpGroup[2].RunComd": true,
+            "@pumpGroup[3].RunComd": true,
             "@pumpGroup[4].RunComd": true,
-            "@pumpGroup[5].RunComd": true
+            "@pumpGroup[5].RunComd": false
           }
         }
       ],
-      "scenario": "Automatic priorities [1,5,3,4,2], start: pumps 2,4,5 run (tie breaks by lower index)."
+      "scenario": "Automatic priorities [1,5,3,4,2], start: pumps 2,3,4 run (tie breaks by lower index)."
     },
     {
       "id": "P07-T3",

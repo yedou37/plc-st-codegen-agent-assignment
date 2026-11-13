@@ -45,7 +45,7 @@ def literal(value, type_name: str | None = None) -> str:
     if isinstance(value, bool):
         return "TRUE" if value else "FALSE"
     if isinstance(value, str):
-        if re.match(r"^(?:T|LT)#[0-9A-Za-z_]+$", value, re.I) or re.match(
+        if re.match(r"^(?:T|LT|TIME|LTIME)#[0-9A-Za-z_]+$", value, re.I) or re.match(
             r"^(?:BOOL|(?:U|S)?INT|DINT|REAL|LREAL|WORD|DWORD|UDINT|UINT|USINT|BYTE)#", value, re.I
         ) or re.match(r"^16#[0-9A-F]+$", value, re.I):
             return value
@@ -89,6 +89,8 @@ def expected_type(path: str, value, types: dict[str, str]) -> str:
         return "DINT"
     if isinstance(value, str) and value.upper().startswith("T#"):
         return "TIME"
+    if isinstance(value, str) and value.upper().startswith(("LT#", "LTIME#")):
+        return "LTIME"
     return "STRING(254)"
 
 

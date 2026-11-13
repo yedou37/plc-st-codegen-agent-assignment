@@ -1,0 +1,121 @@
+﻿run_id,framework,model_id,archived_status,linked_status,output_file,source_sha256,diagnostic
+001-P09-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\pi\gpt\P09.st,6b975795489334c803a9335704c6cfd1aa47f56aeb7a1f1b643b23fb86818e3a,FB: missing matching END_FUNCTION_BLOCK
+002-P09-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\self\gpt\P09_attempt1.st,d81b5f40347eb8df4ea479b8d1c21124b1a363e5944ab188fd54bcf9bc240d01,FB: missing matching END_FUNCTION_BLOCK
+003-P09-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\P09.st,0203b184185e9b3602c4754af2df7b378063092a0a1030f3572c1077e23695fe,
+004-P09-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\P09_attempt1.st,4550e40591c16d34419d68b3dc0db70dbe5a6016cd3b612af4c3394a869a2727,
+005-P19-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P19.st,bc9a471015bf6e457c3b6f36c1eee857ec63415202e34f6d8401bd7c0897ba0e,P19: missing matching END_PROGRAM
+006-P19-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P19_attempt3.st,9b9272b8b8d7c8bd8e0e79fd3d5d6c821e149050593af6b46104e9034d91c4c8,MechanicalArmControl: missing matching END_PROGRAM
+007-P19-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P19.st,da802a74518023aefe7401b12fb19a51f2ffd8f1afe632519eff928198b136c5,P19_MechanicalArm: missing matching END_FUNCTION_BLOCK
+008-P19-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P19_attempt1.st,85bb8b9a0b0da68f4cb5f456206440eefb24ef43878231ad8c4483db7baafd24,FB_MechanicalArm: missing matching END_FUNCTION_BLOCK
+009-P16-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P16.st,101fd7b4ad8934631e3f6d5d12adadfc21af55d872dc3d8b7424c5278aede3f9,P16: missing matching END_PROGRAM
+010-P16-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\self\gpt\P16_attempt1.st,dbd8ec42d971bf9a62b7fe28481184ba8eea672878e8d960e59b7805f335138b,P16: missing matching END_PROGRAM
+011-P16-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P16.st,0ba0b33b157931d8f4e90ff10a1be7c379e46a7897af1bca0f397844304c2fb3,P16_FlexibleProcessing: missing matching END_FUNCTION_BLOCK
+012-P16-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P16_attempt1.st,5c917db4521cfee7d4c6aa581a1302a561712dd93b7c53c7bb3811a6e71d458d,FB_FlexibleProcessing: missing matching END_FUNCTION_BLOCK
+013-P20-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P20.st,8cf50ae1b8e37ac4fd3166c266ec97b14b34f0472277e0d1c9942cb405a58eb0,ProductionControl: missing matching END_PROGRAM
+014-P20-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P20_attempt3.st,9f154d92e5417b183483a4e2eeaf9df196f77ce38d29ab205bcdb0c7024fd7eb,ProductionControl: missing matching END_PROGRAM
+015-P20-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P20.st,e3e5aaf47adb280c79bc3b5940a1bae2333955a2f64958fa651148dbaea1c75d,P20_ProductionControl: missing matching END_FUNCTION_BLOCK
+016-P20-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P20_attempt1.st,8643ea63bafa5bf2142219bd9852df6c31edef573dec756652590e56ad3ad11c,P20_ProductionControl: missing matching END_FUNCTION_BLOCK
+017-S07-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S07.st,0bf565740fbe03ce4a429e1f360910664cd965c020e5cbe1435c5f46a4b0fd17,
+018-S07-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S07_attempt1.st,de8b938be7d99f38b9bad4507a4f3a25b9181bb68a579d20191335c6809a6e2e,
+019-S07-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,FAIL,st\runs\pi\deepseek\S07.st,985c65e5df8f33f21d96c69dc9d34f788d6b013555140b65d3fadb95e2a34140,未预期的语句
+020-S07-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\S07_attempt1.st,15c6a33b334db80d726f7bcaa4eaa4efe22d62b506299dcae77aa12f94421900,
+021-S03-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S03.st,c23599943a7f41db08a05183070f4e56586f4f580bde629a44592c349093fa42,
+022-S03-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S03_attempt1.st,049f4a4bbb8eff6db99b80275d1a80c307df0ffef704e5daf6325f8ca6c2d89c,
+023-S03-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\S03.st,452997d08a2cc274dbbe0119f71a45e5a29ea381d28fe6109e38f90fb0db6c10,
+024-S03-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\S03_attempt1.st,ed2098870d807d7fb479ed0c8bcf18c7e19204e446a7e7253c7a5d49d71e3604,
+025-P17-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P17.st,fc5360a2866cc8dde38cf654fa50311b2ba22c53cafbfe055b0f159a64bffe11,P17: missing matching END_PROGRAM
+026-P17-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P17_attempt3.st,2a240286a0455c4994eec882e50c812bd9c206e2a4350be87f005e909c43e833,P17: missing matching END_PROGRAM
+027-P17-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,FAIL,INVALID_SOURCE,st\runs\pi\deepseek\P17.st,f65caddf2f37356cd50a34b69a3dcca46213e610b5b7244aa58cdb0f5d7e933f,RecipeManagement: missing matching END_PROGRAM
+028-P17-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P17_attempt1.st,c440e1c348c4bc1915e43f0e9fb3250a0cd6f4f195fb5db32da52eb9e5f655a9,P17_RecipeManagement: missing matching END_FUNCTION_BLOCK
+029-S06-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S06.st,6f2c9182f586f460f61ba7e1bdd234177a2875c68af3fb678d66f41de25587f4,
+030-S06-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S06_attempt1.st,e6da7c1fc7d716cb829e97224661c5b48edab47d10d4bb829727a0db2b30bf80,
+031-S06-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\S06.st,358a343d173874fb067c2dd82bdd43917098b5d8e7c89aad42b4012f2117f912,
+032-S06-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\S06_attempt1.st,bbe7e8b78337f2f95566408bd715781b77f51baac1fa803c309187344f8da4b3,
+033-P06-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,PASS,st\runs\pi\gpt\P06.st,96213fa74b40631eab7bf0424c3e1240d6ea7b9b8b4f34c92834dd045f9b58ed,
+034-P06-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P06_attempt3.st,b19bcb76e9e3de319b6088d5059b4c7c15cddbb74c02374f508fed115be9248b,
+035-P06-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\P06.st,c0b07fa5edbdec813de35d2ee6e079352ae709077d79b4d0354d71828ba68efd,
+036-P06-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\P06_attempt1.st,34d73b13cf2fa7cd5cc90060a93a04a5b3049ef292d1c500fe44d70f38f77e1a,
+037-S09-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S09.st,33b96743d4418486fc7b4b6dfdca13c2484f214452bd5955d814b029a762e4e3,
+038-S09-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S09_attempt1.st,60b34490b6b82f927d77838c5b173aaa2785c2628ddf566bf7aa6b2c11771aaf,
+039-S09-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\S09.st,3f856caf990481bd322f364350eb59985e1e11e4306601d5b5f6853f3a31e369,
+040-S09-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\S09_attempt1.st,f149ca904c8a958069c03ce0c8a225313edca291158e3071112fde285ddd53a9,
+041-P02-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P02.st,1d158cadc1e994e7fbab7fa802d44db6c529fdebd18fd4b56f3e57c92ffdb184,
+042-P02-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P02_attempt1.st,2c874bdd38df12e0f5e774d17e558ed1e67dd9867bf16d80c23c91601c7f60d8,
+043-P02-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,FAIL,st\runs\pi\deepseek\P02.st,e3612b0cd84a4a9445e85be588df271e33c5dededaa6b4959e279eb17e3d29a8,应该采用'THEN' 取代')' | 应该采用'THEN' 取代')'
+044-P02-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\P02_attempt1.st,9c9ceb2941c0804f519bcd96a23cee242bf0d7d0282419090b403bfff42a64da,
+045-S08-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S08.st,3e5dd6e7ad3c394b5538b4206b6568a8a08bd0bed1d47ca3a00bafc53604f699,
+046-S08-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S08_attempt2.st,b082e20bf7104c7e998ddc538b12cfffc85c2412e28a5307dcbb0564090f5c13,
+047-S08-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\S08.st,afba4f76484de3ff506f3467599f839317606a72009df60edd7ecf92e206d0b0,
+048-S08-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\S08_attempt1.st,4e42ab274749347c27467652a31eb43723762f8dafb9afc0e96103ecebe98eba,
+049-P07-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,PASS,st\runs\pi\gpt\P07.st,0a2c2ec00dc7e5c1070c40c7aded65c327ca1fd5d67179511aeed50e641a577b,
+050-P07-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,PASS,st\runs\self\gpt\P07_attempt3.st,ef9d720e80ea6390eb3feccf4a1fd49cae53549035484b41d94e92c1e2affd9c,
+051-P07-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,FAIL,INVALID_SOURCE,st\runs\pi\deepseek\P07.st,fdeec6c7670c3873806ee9468b07ba45fbae4e031fb7245d70aaed83760c32e1,P07_MultiPumpControl: missing matching END_PROGRAM
+052-P07-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,FAIL,INVALID_SOURCE,st\runs\self\deepseek\P07_attempt3.st,0521a9c790b5f7cc64c7831c453cafe4f1d4ef840e8b9963a7ba828ef14cd691,P07_MultiPumpControl: missing matching END_PROGRAM
+053-S10-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\S10.st,0e80b77c950708b18f0188c8eb1fee9254e09aab4f0c3c7306ef60ce008de68d,
+054-S10-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S10_attempt2.st,ebb2b4982749f4eb620e53c0fd38bbd4bf10c0430abd37eb78a7bb0dcf00e581,
+055-S10-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\S10.st,efffab936859f9fbb4b2de4d3d7e9bff2500c16f5dab0a8c6c8f9125fda01dbc,FB_HeaterControl: missing matching END_FUNCTION_BLOCK
+056-S10-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\S10_attempt1.st,1ff5b9022be547a1fdf72c39d4f79dac297a1282f2f81e007685d6f74792a521,Unterminated ST block comment
+057-P05-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,PASS,st\runs\pi\gpt\P05.st,e64da87f0a3d3fb827de483de79be8a217dbb2caf58c50f99d7ae98016245b2e,
+058-P05-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P05_attempt3.st,eed772650c1e4ed30e4d8e21a0d5897e3d05a59c3e0f473d8aa67db45ca3ced6,
+059-P05-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\P05.st,9a8e01b95bb340815465bc83dfc3d610eebfbbcb120a2d063c8c703e2260d203,
+060-P05-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,FAIL,st\runs\self\deepseek\P05_attempt1.st,869500b45fe1de46d357f5ae7ae78e2925e0f36fe6e60431516e580db9b11b87,不能将类型 '未知的类型: '(DebounceTime > T0s)'' 转换为类型'BOOL' | 未知的类型: 'T0s' | 没有定义标识符'T0s'
+061-P12-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P12.st,fe652bb4900974f751c1d5c758cd2e8e85135bf0f3b89c4514958e4b1884879a,P12: missing matching END_PROGRAM
+062-P12-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P12_attempt3.st,881cdce3536a222edc861b07b0e448f34a83a8a98eae9b9fe7acc5d7b2a79507,P12: missing matching END_PROGRAM
+063-P12-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P12.st,4c47c23444e303a69f3e9b586f9ea66a9717b6355c27fc4c59cb9644c6bd41cd,Unterminated ST block comment
+064-P12-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P12_attempt1.st,3dba409fe22002ad442faec453683fa86ec4e7ce6c62f2427ebe59e23d2eb820,P12_SlabThicknessAlarm: missing matching END_FUNCTION_BLOCK
+065-S04-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\S04.st,05f94063393faf51f0323218934e2804484a43b9846b8fd187045525883e9897,S04: missing matching END_PROGRAM
+066-S04-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\S04_attempt3.st,096e74e854db51c2269700639562075fd3357423a543f9c0b7eb5f14601060a4,S04: missing matching END_PROGRAM
+067-S04-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\S04.st,8945336c876f89ed390eb34a1ddb9941dc9541034a6ce017c528cac272ef1184,FB_BatchMixer: missing matching END_FUNCTION_BLOCK
+068-S04-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\S04_attempt1.st,b0ff0530b5acf8560937866efd613c8a665c198d70ef22730cb53a54ed760da0,FB_BatchMixer: missing matching END_FUNCTION_BLOCK
+069-P04-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P04.st,9af1b92dee7b807a2845c03575b95e0bd623488ef324686ae65b8a7076819d3c,
+070-P04-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P04_attempt2.st,600c110d27756c1b15a8427ec2934a19a939fd77df2eddbb84c37bf1a2747583,
+071-P04-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P04.st,acb8d8f01c069cfd9c28a62ead8b27cf73b59ddafcbc80ab6a589bcb2f815e79,FB_JamPump: missing matching END_FUNCTION_BLOCK
+072-P04-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P04_attempt1.st,213e514bcdf0beb62f9e0de78fe552960ea7b485f8e5149638f73cccedc60ca3,FB_JamPumpControl: missing matching END_FUNCTION_BLOCK
+073-S01-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\S01.st,59961680e45f22fcde44360a7962d7d451e71961f84675527ecc0b1feef610d7,S01: missing matching END_PROGRAM
+074-S01-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\S01_attempt3.st,96489db32e2768b43d1c9cd03a65bb3b0d532ceab6ad25ad06cf591d200bdf23,S01: missing matching END_PROGRAM
+075-S01-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\S01.st,9464dc1dbfda78296163faf7510d51ea085c5b20713d183e9ff28af70bc70008,Unterminated ST block comment
+076-S01-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\S01_attempt1.st,39d53d9b0f7dd45a2c82d41e401db3a3e08054baa1c96f32cf1af0dea58c49ac,Unterminated ST block comment
+077-P03-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P03.st,a4ed50f1788ca246b2a75ce06ec8e60ff8013d6dfc09e211da0ed3f22b371917,
+078-P03-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P03_attempt1.st,cb4c4c4de7591758449a150267e7240ff773a452efa751ad900f89314ee56b9a,
+079-P03-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\P03.st,1de642304dab7aa483e86e579c12923c13f681e16a9f4fbfb1787af24c638261,
+080-P03-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\self\deepseek\P03_attempt1.st,821503da477c2b129a224e3a6aef07ef23017835b39deeb32c8fff9f372bdef4,
+081-P14-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,PASS,st\runs\pi\gpt\P14.st,06b92a5c52be3a45c0e38717ebcbb732dd39f17723218204fff9979d440fa47c,
+082-P14-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P14_attempt3.st,180ad2d63bffd5b0771d7206560355579b503d12ecf796bf547a3d68470d1256,
+083-P14-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P14.st,302ccf0e854c648fe8e751ec2c0702a8fdda7fe1e9b1e19ef432fe59968309d1,FB_IPv4Parse: missing matching END_FUNCTION_BLOCK
+084-P14-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P14_attempt1.st,53176a472562508f0e0e0caef782d284d883a0202f5aec1b66fe19eb218cd337,P14_IPv4Parse: missing matching END_FUNCTION_BLOCK
+085-S02-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\S02.st,b6a3dbe3bd1685b83a6ce412c4f2d888ef9671e89db6a483069b5ddc529dc4b5,S02: missing matching END_PROGRAM
+086-S02-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\S02_attempt3.st,185404e2f2c99129bbf5569ce31661f6afadec07f1c1a55e41b587f7bbe3adef,
+087-S02-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\S02.st,9583866309d0fb2e02fa612d44fba2291722ecedad9854caacce48a9201b9607,Unterminated ST block comment
+088-S02-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\S02_attempt1.st,f7c7396778dd537f18a4ab20cf72a8c297cdb99f2bda4f05f1168bd45d532bb3,FB_JamRetry: missing matching END_FUNCTION_BLOCK
+089-S05-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\S05.st,e2bd75338a10b44c75c4e6985d2baf0b6d58cddf2745360b8962a8f5520a2e1e,S05: missing matching END_PROGRAM
+090-S05-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\S05_attempt3.st,de0bd2d96d0916ebeaed9f2b74f04f5079c5dbc24d72bf20221f8877a6a1c07a,S05: missing matching END_PROGRAM
+091-S05-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\S05.st,3378a838f2e7fc7b7fa25db5933da54474c7c7856de46257a342a2dd7a68f18b,FB_CoolingFanStaging: missing matching END_FUNCTION_BLOCK
+092-S05-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\S05_attempt1.st,7bdf9eec80b099c819e30341ae8700285fa5b7c4526a11e2806ab51d6fe040e2,FB_CoolingFanStaging: missing matching END_FUNCTION_BLOCK
+093-P01-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P01.st,abedb0c885833867149e4b54ed2111e6fd82229c6a0a1981f44123926c1f8a01,
+094-P01-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P01_attempt2.st,37ba119458c541343fd2d077309241fdcea4b2b7a2ba07c8d34163fcff5d7dbc,
+095-P01-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P01.st,2520865fe340bff854c660b40980e925d7db2d82ad97390830ebad548bb0ffe0,P01_FillingLine: missing matching END_FUNCTION_BLOCK
+096-P01-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P01_attempt1.st,42ca12d38b3450b9b87be65d4f8a8c962de6f9e1547cf32413075f0920fdcbb5,FB_AutomatedFillingLine: missing matching END_FUNCTION_BLOCK
+097-P18-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P18.st,99b48a46e4a87f23934cb76d813cd2b70e8574d66bfc4366d2d4fc3411fa84d5,
+098-P18-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\self\gpt\P18_attempt1.st,23dafe511435964c416a1b4cdeedbb7251c4f11b514be9bc29d9ff5de705a373,FB: missing matching END_FUNCTION_BLOCK
+099-P18-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P18.st,01ac0c9d078d8e36e55ab0ae84bb4d3de7b31b6eb4a43d33b3601b5ce78709e9,FB_FIFOQueue: missing matching END_FUNCTION_BLOCK
+100-P18-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P18_attempt1.st,21aa6a69f3f8b00ac2c9cdaf1ec5cc5db6bf17c4c14025c09b5df43cfba25b87,FB_FIFO: missing matching END_FUNCTION_BLOCK
+101-P13-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,PASS,st\runs\pi\gpt\P13.st,173a2b9e18d083892491e77cf7f5339578ffcce380e03ca90dbe83f1d0fdb68b,
+102-P13-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,PASS,st\runs\self\gpt\P13_attempt3.st,b7fa26caa4dd7eaf3c56b2ae79fe5fb682e37d2aeb2d7ec44ee6194a857b23e3,
+103-P13-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P13.st,4ea38ef7f5d3916ac981b10f2e043172ede73ab8c5f15520b4216f43980bd58f,P13_HVAC_Control: missing matching END_FUNCTION_BLOCK
+104-P13-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P13_attempt1.st,ae856c943b1e1bef3c5d205f6793d8a6549dd6cca871462695ac7da864792cde,Unterminated ST block comment
+105-P10-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P10.st,d6cbb873f447d64a32fc8dd980759c4b133bf7ea3fd839ce0efbf612973b09e9,
+106-P10-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\self\gpt\P10_attempt1.st,357b26894d995ac0e4cf055a5864620f7b9cb3a7a6b387a7a5c43b93e8370288,FB: missing matching END_FUNCTION_BLOCK
+107-P10-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,PASS,st\runs\pi\deepseek\P10.st,cf51761f20040cd2197d669131f110725227a99d4323fcd567123fc252990eeb,
+108-P10-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P10_attempt1.st,597987d036b5be99598428649c7f713b90f8aee38061ec5dbb6f479e39ac8eb7,Unterminated ST block comment
+109-P08-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,PASS,PASS,st\runs\pi\gpt\P08.st,ec4427f7f8439d76611b2becccf556a1ca99f9d55c655146148d0ace9367e9f6,
+110-P08-gpt-self,Self-developed harness,gpt-6.1-sol,PASS,INVALID_SOURCE,st\runs\self\gpt\P08_attempt1.st,b05ed75e76f969b3fd612f1d8b98d997153fdfdd2089ab73a4fc24a058286c25,FB_AnalogBatchProcessing: missing matching END_FUNCTION_BLOCK
+111-P08-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P08.st,4e11120b1938e8ec6fcd5c62092a55d07bad6405fb5ab9b5518eb9d41e01581d,Unterminated ST block comment
+112-P08-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P08_attempt2.st,7391d333f9a06735038033b1be59f19deca792ae94b0194aaf0b1ee84312cdea,FB_AnalogBatchProcessing: missing matching END_FUNCTION_BLOCK
+113-P15-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P15.st,8e125f1143373ec102243ef655dc5d83ca006670fb211f6bb1bd724406f24974,P15: missing matching END_PROGRAM
+114-P15-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P15_attempt3.st,350e6cef6e7b339aa616be76997ab0da83e12b08b64bc2e0a94d8c36acd792c2,P15: missing matching END_PROGRAM
+115-P15-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P15.st,38aef4982a3a8ce1c51ce3b9ee6943c772d4880d461f8430495bc5b657205acf,P15_MaterialProportioning: missing matching END_FUNCTION_BLOCK
+116-P15-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\self\deepseek\P15_attempt1.st,1dacf44b51c2cfc9e31e295bd20df756fb6565e3433d47b6de75ce02d95d031a,P15_MaterialProportioning: missing matching END_FUNCTION_BLOCK
+117-P11-gpt-pi,Pi coding-agent single-shot,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\pi\gpt\P11.st,5552b23b60eea7f9053d30ebe584e11a89f8b4b4dc13f3a159403b240b92a7d4,Unterminated ST block comment
+118-P11-gpt-self,Self-developed harness,gpt-6.1-sol,FAIL,INVALID_SOURCE,st\runs\self\gpt\P11_attempt3.st,553f42cb449c1a6269c5f56fed619007b68d984969cd8d265ebfaa7e49a028cb,Unterminated ST block comment
+119-P11-deepseek-pi,Pi coding-agent single-shot,deepseek-v4.1-flash-1017,PASS,INVALID_SOURCE,st\runs\pi\deepseek\P11.st,aa42982adfdd667250e64c6211da11907ba3689104d9fa6fdb520c5fb4aec25f,FB_ProductionLine: missing matching END_FUNCTION_BLOCK
+120-P11-deepseek-self,Self-developed harness,deepseek-v4.1-flash-1017,FAIL,INVALID_SOURCE,st\runs\self\deepseek\P11_attempt1.st,b8b3d1a27f268ae5e5d908952cab994d1d099dfb0ae2b39ff8c681852a21a33c,PRG_ProductionLine: missing matching END_PROGRAM

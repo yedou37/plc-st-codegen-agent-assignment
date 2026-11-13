@@ -1,8 +1,8 @@
 {
   "benchmark": "PLC-ST-Agent-Benchmark",
-  "version": "1.0",
-  "scan_semantics": "Inputs are sampled once per scan; outputs and state are observed at scan boundaries. X denotes the next scan.",
-  "spec_profile": "Future-time LTL with atomic propositions for typed comparisons and named timer/state predicates. Macros are documented and expanded by the verifier adapter.",
+  "version": "1.1",
+  "scan_semantics": "Each trace position pairs sampled inputs with the outputs and state produced by that scan. prev variables refer to the preceding scan. X denotes the next trace position.",
+  "spec_profile": "Future-time LTL with typed comparisons and named timer/state predicates. Backend verification requires explicit predicate bindings and macro expansion.",
   "task_count": 30,
   "public_count": 20,
   "self_built_count": 10,
@@ -292,7 +292,7 @@
         "original_title": "Alarm Handling"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Invalid configuration does not update alarm latches; hysteresis equality remains latched per the source wording.",
+      "assumptions": "prevHiAlarm and prevLoAlarm are the stored latch states entering the scan. Invalid configuration does not update those latches. Hysteresis equality keeps the relevant latch set.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -305,19 +305,19 @@
         },
         {
           "id": "P03-L3",
-          "formula": "G(Value > hiLevel & validConfig -> X(hiAlarm))"
+          "formula": "G((validConfig & Value>hiLevel) -> hiAlarm)"
         },
         {
           "id": "P03-L4",
-          "formula": "G(Value < loLevel & validConfig -> X(loAlarm))"
+          "formula": "G((validConfig & Value<loLevel) -> loAlarm)"
         },
         {
           "id": "P03-L5",
-          "formula": "G(hiAlarm & Value >= hiLevel-hystWindow -> X(hiAlarm))"
+          "formula": "G((validConfig & prevHiAlarm & Value>=hiLevel-hystWindow) -> hiAlarm)"
         },
         {
           "id": "P03-L6",
-          "formula": "G(loAlarm & Value <= loLevel+hystWindow -> X(loAlarm))"
+          "formula": "G((validConfig & prevLoAlarm & Value<=loLevel+hystWindow) -> loAlarm)"
         }
       ],
       "test_cases": [
@@ -392,7 +392,7 @@
         "original_title": "Jam Pump Debouncing and Runtime Maintenance"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Timer uses supplied elapsed scan time; nonpositive DebounceTime or CycleTime is treated as invalid and inhibits run.",
+      "assumptions": "Timer uses supplied elapsed scan time. Nonpositive DebounceTime or CycleTime inhibits run. prevPumpRuntime is zero before the first scan and is the previous PUMP_RUNTIME_ACC thereafter.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -401,19 +401,27 @@
         },
         {
           "id": "P04-L2",
-          "formula": "G(VFD_RUN -> PASTE_E_STOP_NC & viscosityValid)"
+          "formula": "G(VFD_RUN -> (PASTE_E_STOP_NC & VISCOSITY_OK & viscosityValid & DebounceTime>T#0s & CycleTime>T#0s))"
         },
         {
           "id": "P04-L3",
-          "formula": "G(VISCOSITY_OK & PASTE_E_STOP_NC & debounceElapsed >= DebounceTime -> X(viscosityValid))"
+          "formula": "G((VISCOSITY_OK & PASTE_E_STOP_NC & DebounceTime>T#0s & CycleTime>T#0s & debounceElapsed>=DebounceTime) -> viscosityValid)"
         },
         {
           "id": "P04-L4",
-          "formula": "G(VFD_RUN -> X(PUMP_RUNTIME_ACC = PUMP_RUNTIME_ACC + CycleTime))"
+          "formula": "G((!VISCOSITY_OK | !PASTE_E_STOP_NC) -> !viscosityValid)"
         },
         {
           "id": "P04-L5",
-          "formula": "G(PUMP_RUNTIME_ACC >= T#500h -> PUMP_MAINT_DUE)"
+          "formula": "G(VFD_RUN -> PUMP_RUNTIME_ACC = prevPumpRuntime + CycleTime)"
+        },
+        {
+          "id": "P04-L6",
+          "formula": "G(!VFD_RUN -> PUMP_RUNTIME_ACC = prevPumpRuntime)"
+        },
+        {
+          "id": "P04-L7",
+          "formula": "G(PUMP_MAINT_DUE <-> (PUMP_RUNTIME_ACC >= LTIME#500h))"
         }
       ],
       "test_cases": [
@@ -489,11 +497,11 @@
         },
         {
           "id": "P05-L3",
-          "formula": "G(!initActive & Weld_E_Stop_NC & debounceElapsed >= DebounceTime & Gap_Exceeded -> X(Operator_Alert))"
+          "formula": "G((!initActive & Weld_E_Stop_NC & debounceElapsed>=DebounceTime & Gap_Exceeded) -> Operator_Alert)"
         },
         {
           "id": "P05-L4",
-          "formula": "G(!Gap_Exceeded -> X(!Operator_Alert & debounceElapsed = 0))"
+          "formula": "G(!Gap_Exceeded -> (!Operator_Alert & debounceElapsed=0))"
         }
       ],
       "test_cases": [
@@ -563,7 +571,11 @@
         },
         {
           "id": "P06-L3",
-          "formula": "G(BLOWER_RUN & !prevBLOWER_RUN -> X(AERATION_BLOWER_CYCLE_COUNT = prevCount + 1))"
+          "formula": "G((BLOWER_RUN & !prevBLOWER_RUN) -> AERATION_BLOWER_CYCLE_COUNT = min(prevCount+1, UINT_MAX))"
+        },
+        {
+          "id": "P06-L4",
+          "formula": "G(!(BLOWER_RUN & !prevBLOWER_RUN) -> AERATION_BLOWER_CYCLE_COUNT = prevCount)"
         }
       ],
       "test_cases": [
@@ -620,34 +632,34 @@
         "original_title": "Multi-Pump Switching Control System"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Auto mode selects exactly the three highest-ranked pumps while start is held; ties break by lower array index. Stop has priority; selection changes are applied each scan.",
+      "assumptions": "Start is a level-sensitive run request in both modes. Auto mode selects exactly three highest-ranked pumps; rank_i is one-based and ties break by lower array index. AND_i ranges over 1..5; countRunningPumps counts true RunComd fields. Stop has priority.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
           "id": "P07-L1",
-          "formula": "G(stop -> X(AND_i !pumpGroup[i].RunComd))"
+          "formula": "G((stop | !start) -> AND_i(!pumpGroup[i].RunComd))"
         },
         {
           "id": "P07-L2",
-          "formula": "G(mode & start & !stop -> selectedAuto_i <-> rank_i <= 3)"
+          "formula": "G((mode & start & !stop) -> AND_i(pumpGroup[i].RunComd <-> rank_i <= 3))"
         },
         {
           "id": "P07-L3",
-          "formula": "G(!mode & start & !stop -> pumpGroup[i].RunComd <-> pumpGroup[i].selection)"
+          "formula": "G((!mode & start & !stop) -> AND_i(pumpGroup[i].RunComd <-> pumpGroup[i].selection))"
         },
         {
           "id": "P07-L4",
-          "formula": "G(AtMost3(pumpGroup[*].RunComd))"
+          "formula": "G((mode & start & !stop) -> countRunningPumps = 3)"
         }
       ],
       "test_cases": [
         {
           "id": "P07-T1",
-          "scenario": "Manual, selected pump 2, start edge: pump 2 runs; unselected pumps stop."
+          "scenario": "Manual, start held with pumps 1 through 4 selected: those four run; pump 5 stops."
         },
         {
           "id": "P07-T2",
-          "scenario": "Automatic priorities [1,5,3,4,2], start: pumps 2,4,5 run (tie breaks by lower index)."
+          "scenario": "Automatic priorities [1,5,3,4,2], start: pumps 2,3,4 run (tie breaks by lower index)."
         },
         {
           "id": "P07-T3",
@@ -842,12 +854,12 @@
         "original_title": "Calculate Moving Average"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Cyclic execution supersedes trigger; reset has priority. Before the buffer fills, average divides by current sample count.",
+      "assumptions": "Cyclic execution supersedes trigger; reset has priority. valid means windowSize is in 1..100. currentWindow contains the accepted sample and the most recent retained samples; occupancy is its post-scan length.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
           "id": "P09-L1",
-          "formula": "G(reset -> X(occupancy=0 & average=0.0 & !windowSizeReached))"
+          "formula": "G(reset -> (occupancy=0 & average=0.0 & !windowSizeReached))"
         },
         {
           "id": "P09-L2",
@@ -855,19 +867,19 @@
         },
         {
           "id": "P09-L3",
-          "formula": "G(valid & sampleAccepted -> X(average = sum(last min(samples,windowSize))/min(samples,windowSize)))"
+          "formula": "G((valid & sampleAccepted) -> average = sum(currentWindow)/occupancy)"
         },
         {
           "id": "P09-L4",
-          "formula": "G(valid -> windowSizeReached <-> occupancy=windowSize)"
+          "formula": "G(valid -> (windowSizeReached <-> occupancy=windowSize))"
         },
         {
           "id": "P09-L5",
-          "formula": "G(cyclicExecution -> sampleAccepted <-> !reset)"
+          "formula": "G(cyclicExecution -> (sampleAccepted <-> (valid & !reset)))"
         },
         {
           "id": "P09-L6",
-          "formula": "G(!cyclicExecution -> sampleAccepted <-> trigger & !prevTrigger & !reset)"
+          "formula": "G(!cyclicExecution -> (sampleAccepted <-> (valid & trigger & !prevTrigger & !reset)))"
         }
       ],
       "test_cases": [
@@ -1081,23 +1093,23 @@
         },
         {
           "id": "P11-L3",
-          "formula": "G(Mode=1 & !SensorB -> MotorForward -> stage=TRAVEL_AB)"
+          "formula": "G((Mode=1 & MotorForward) -> (stage=TRAVEL_AB | stage=TRAVEL_BC))"
         },
         {
           "id": "P11-L4",
-          "formula": "G(stage=AT_B & !ButtonBComplete -> !MotorForward)"
+          "formula": "G((Mode=1 & stage=AT_B & !ButtonBComplete) -> !MotorForward)"
         },
         {
           "id": "P11-L5",
-          "formula": "G(SensorC & stage=AT_C -> !MotorForward)"
+          "formula": "G((Mode=1 & SensorC & stage=AT_C) -> !MotorForward)"
         },
         {
           "id": "P11-L6",
-          "formula": "G(complete & SensorC -> CompletionLight)"
+          "formula": "G((Mode=1 & complete & SensorC) -> CompletionLight)"
         },
         {
           "id": "P11-L7",
-          "formula": "G(!SensorC -> !CompletionLight)"
+          "formula": "G((Mode=1 & !SensorC) -> !CompletionLight)"
         }
       ],
       "test_cases": [
@@ -1184,7 +1196,7 @@
         "original_title": "Slab Thickness Alarm and Fault History"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Fault edges are counted only when the valid signal is true; history is newest-first, fixed at five; alarm hold resets immediately on invalid signal.",
+      "assumptions": "prevValidFault is the preceding scan's conjunction of validity and fault; alarmHold is a triggered hold whose elapsed time is below 500 ms. prevSlabCount and prevSlabRuntime are previous-scan values, initialized to zero. CycleTime is positive. History is newest-first and alarm hold clears on invalid input.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -1193,19 +1205,19 @@
         },
         {
           "id": "P12-L2",
-          "formula": "G(THICKNESS_SIGNAL_VALID & THICKNESS_FAULT & !prevFault -> X(counter=prevCounter+1 & history[0]=FaultTimestamp))"
+          "formula": "G((THICKNESS_SIGNAL_VALID & THICKNESS_FAULT & !prevValidFault) -> (Slab_Fault_Counter = prevSlabCount+1 & Slab_Fault_History[0] = FaultTimestamp))"
         },
         {
           "id": "P12-L3",
-          "formula": "G(THICKNESS_ALARM -> (THICKNESS_FAULT | !hold500msDone))"
+          "formula": "G(THICKNESS_ALARM <-> (THICKNESS_SIGNAL_VALID & (THICKNESS_FAULT | alarmHold)))"
         },
         {
           "id": "P12-L4",
-          "formula": "G(CUTTING_RUN & THICKNESS_SIGNAL_VALID & !THICKNESS_FAULT -> X(runtime=prevRuntime+CycleTime))"
+          "formula": "G((CUTTING_RUN & THICKNESS_SIGNAL_VALID & !THICKNESS_FAULT) -> Slab_Runtime_Accumulator = prevSlabRuntime+CycleTime)"
         },
         {
           "id": "P12-L5",
-          "formula": "G(!(CUTTING_RUN & THICKNESS_SIGNAL_VALID & !THICKNESS_FAULT) -> X(runtime=prevRuntime))"
+          "formula": "G(!(CUTTING_RUN & THICKNESS_SIGNAL_VALID & !THICKNESS_FAULT) -> Slab_Runtime_Accumulator = prevSlabRuntime)"
         }
       ],
       "test_cases": [
@@ -1497,23 +1509,27 @@
         },
         {
           "id": "P15-L2",
-          "formula": "G(opeMode & step=FILL_A -> valveARun & !valveBRun)"
+          "formula": "G((estop & opeMode & prevStep=FILL_A & levelSensor<50) -> (valveARun & !valveBRun))"
         },
         {
           "id": "P15-L3",
-          "formula": "G(levelSensor>=50 & step=FILL_A -> X(step=FILL_B))"
+          "formula": "G((estop & opeMode & prevStep=FILL_A & levelSensor>=50) -> (step=FILL_B & !valveARun & valveBRun))"
         },
         {
           "id": "P15-L4",
-          "formula": "G(levelSensor>=80 & step=FILL_B & !processMode -> X(step=MIX))"
+          "formula": "G((estop & opeMode & prevStep=FILL_B & levelSensor>=80 & !processMode) -> step=MIX)"
         },
         {
           "id": "P15-L5",
-          "formula": "G(levelSensor>=100 & step=FILL_C -> X(step=MIX))"
+          "formula": "G((estop & opeMode & prevStep=FILL_B & levelSensor>=80 & processMode) -> step=FILL_C)"
         },
         {
           "id": "P15-L6",
-          "formula": "G(step=MIX & mixMotorComplete -> X(step=DISCHARGE))"
+          "formula": "G((estop & opeMode & prevStep=FILL_C & levelSensor>=100) -> step=MIX)"
+        },
+        {
+          "id": "P15-L7",
+          "formula": "G((estop & opeMode & prevStep=MIX & mixMotorComplete) -> step=DISCHARGE)"
         }
       ],
       "test_cases": [
@@ -1624,7 +1640,7 @@
         "original_title": "Flexible Processing Control"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Sequence entries 2..4 are valid, final entry is 5; left means decreasing station number and right means increasing. Invalid lengths inhibit motion.",
+      "assumptions": "Sequence entries 2..4 are valid and the final entry is 5. Left means decreasing station number and right means increasing. Invalid lengths inhibit motion. Travel is assumed to receive target sensor feedback unless the sequence is aborted.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -1637,7 +1653,7 @@
         },
         {
           "id": "P16-L3",
-          "formula": "G(moveIssued -> F(targetSensor & !conveyorLeft & !conveyorRight))"
+          "formula": "G(moveIssued -> F((targetSensor & !conveyorLeft & !conveyorRight) | sequenceAborted))"
         },
         {
           "id": "P16-L4",
@@ -1645,7 +1661,7 @@
         },
         {
           "id": "P16-L5",
-          "formula": "G(sensor5 -> X(!conveyorLeft & !conveyorRight & done))"
+          "formula": "G((prevTargetStation=5 & moveInProgress & sensor5) -> (!conveyorLeft & !conveyorRight & done))"
         }
       ],
       "test_cases": [
@@ -2056,7 +2072,7 @@
         "original_title": "Mechanical Arm Control"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Start is edge-triggered; position feedback completes each motion; mode changes stop and reset the automatic sequence; EmergencyStop FALSE is active.",
+      "assumptions": "Start is edge-triggered. A commanded motion is assumed to receive its position feedback if the mode and permissive remain active. cycleFinished means the final left motion reaches its limit and all six commands are off. In manualCommandsMatchPermittedButtons each command equals its button AND NOT its limit AND NOT the opposite button. Opposing requests suppress both commands.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -2065,7 +2081,7 @@
         },
         {
           "id": "P19-L2",
-          "formula": "G(ManualMode -> eachMotionOutput <-> buttonPressed & !correspondingLimit)"
+          "formula": "G((ManualMode & EmergencyStop) -> manualCommandsMatchPermittedButtons)"
         },
         {
           "id": "P19-L3",
@@ -2073,11 +2089,11 @@
         },
         {
           "id": "P19-L4",
-          "formula": "G(SingleCycleMode & cycleStarted -> F(leftLimitReached & allMotionOutputsOff))"
+          "formula": "G((SingleCycleMode & cycleStarted & EmergencyStop) -> F(cycleFinished | !SingleCycleMode | !EmergencyStop))"
         },
         {
           "id": "P19-L5",
-          "formula": "G(ContinuousMode & cycleStarted & !EmergencyStop -> F(cycleRestart))"
+          "formula": "G((ContinuousMode & cycleStarted & EmergencyStop) -> F(cycleRestart | !ContinuousMode | !EmergencyStop))"
         }
       ],
       "test_cases": [
@@ -2212,7 +2228,7 @@
         "original_title": "Production Control"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Automatic stages advance only after respective completion signals; mode change aborts an in-flight sequence; kick is a one-scan pulse; qualified range includes endpoints.",
+      "assumptions": "Automatic stages advance only after their completion signals. acceptedWeight is the scan in which the active weighing stage accepts weightComplete. finishedAtOutput means the active firing-to-output move has reached the finished-product station. A mode change aborts an in-flight sequence. kick is a one-scan pulse.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -2229,27 +2245,27 @@
         },
         {
           "id": "P20-L4",
-          "formula": "G(Mode=1 & SensorWash -> !MotorForward & !MotorReverse)"
+          "formula": "G((Mode=1 & stage=WAIT_WASH & !washComplete) -> (!MotorForward & !MotorReverse))"
         },
         {
           "id": "P20-L5",
-          "formula": "G(qualifiedWeight & weightComplete -> 500 <= firingTemp & firingTemp <= 550)"
+          "formula": "G((Mode=1 & acceptedWeight & 100<=weight & weight<=200) -> (500<=firingTemp & firingTemp<=550))"
         },
         {
           "id": "P20-L6",
-          "formula": "G(qualifiedWeight -> firingTemp=500+(weight-100)*0.5)"
+          "formula": "G((Mode=1 & acceptedWeight & 100<=weight & weight<=200) -> firingTemp=500+(weight-100)*0.5)"
         },
         {
           "id": "P20-L7",
-          "formula": "G(unqualifiedWeight & weightComplete -> kick)"
+          "formula": "G((Mode=1 & acceptedWeight & (weight<100 | weight>200)) -> kick)"
         },
         {
           "id": "P20-L8",
-          "formula": "G(SensorOutput -> !MotorForward & !MotorReverse & CompletionLight)"
+          "formula": "G((Mode=1 & finishedAtOutput & SensorOutput) -> (!MotorForward & !MotorReverse & CompletionLight))"
         },
         {
           "id": "P20-L9",
-          "formula": "G(!SensorOutput -> !CompletionLight)"
+          "formula": "G((Mode=1 & !SensorOutput) -> !CompletionLight)"
         }
       ],
       "test_cases": [
@@ -2343,35 +2359,39 @@
         },
         {
           "id": "S01-L2",
-          "formula": "G(Pump1Fault -> !Pump1Run & (demand & !Pump2Fault -> X(Pump2Run)))"
+          "formula": "G(Pump1Fault -> !Pump1Run)"
         },
         {
           "id": "S01-L3",
-          "formula": "G(Pump2Fault -> !Pump2Run & (demand & !Pump1Fault -> X(Pump1Run)))"
+          "formula": "G(Pump2Fault -> !Pump2Run)"
         },
         {
           "id": "S01-L4",
-          "formula": "G(!AutoEnable -> X(!Pump1Run & !Pump2Run & !demand))"
+          "formula": "G(!AutoEnable -> (!Pump1Run & !Pump2Run & !demand))"
         },
         {
           "id": "S01-L5",
-          "formula": "G(AutoEnable & LevelHigh & healthyPumpAvailable -> X(demand & (Pump1Run | Pump2Run)))"
+          "formula": "G((AutoEnable & LevelHigh & healthyPumpAvailable) -> (demand & (Pump1Run | Pump2Run)))"
         },
         {
           "id": "S01-L6",
-          "formula": "G((Pump1Run & !Pump1Fault | Pump2Run & !Pump2Fault) & !activePumpMinOn2sDone -> X(Pump1Run | Pump2Run))"
+          "formula": "G((AutoEnable & ((prevPump1Run & !Pump1Fault) | (prevPump2Run & !Pump2Fault)) & !activePumpMinOn2sDone) -> (Pump1Run | Pump2Run))"
         },
         {
           "id": "S01-L7",
-          "formula": "G(demand & Pump1Fault & Pump2Fault -> X(!Pump1Run & !Pump2Run & NoAvailablePump))"
+          "formula": "G(NoAvailablePump <-> (demand & Pump1Fault & Pump2Fault))"
         },
         {
           "id": "S01-L8",
-          "formula": "G(!(demand & Pump1Fault & Pump2Fault) -> X(!NoAvailablePump))"
+          "formula": "G((AutoEnable & demand & prevPump1Run & Pump1Fault & !Pump2Fault) -> Pump2Run)"
         },
         {
           "id": "S01-L9",
-          "formula": "G(demandCycleComplete -> X(leadPump = !prevLeadPump))"
+          "formula": "G((AutoEnable & demand & prevPump2Run & Pump2Fault & !Pump1Fault) -> Pump1Run)"
+        },
+        {
+          "id": "S01-L10",
+          "formula": "G(demandCycleComplete -> (leadIsPump1 <-> !prevLeadIsPump1))"
         }
       ],
       "test_cases": [
@@ -2489,23 +2509,23 @@
         },
         {
           "id": "S02-L2",
-          "formula": "G((Stop | !EStopOK | FaultLatched) -> X(!ConveyorForward & !ConveyorReverse))"
+          "formula": "G((Stop | !EStopOK | FaultLatched) -> (!ConveyorForward & !ConveyorReverse))"
         },
         {
           "id": "S02-L3",
-          "formula": "G(!EStopOK -> X(FaultLatched))"
+          "formula": "G(!EStopOK -> FaultLatched)"
         },
         {
           "id": "S02-L4",
-          "formula": "G(Jam & ConveyorForward -> !ConveyorForward & X(!ConveyorForward))"
+          "formula": "G((Jam & prevConveyorForward) -> !ConveyorForward)"
         },
         {
           "id": "S02-L5",
-          "formula": "G(ConveyorReverse & !reverse1sDone -> X(ConveyorReverse))"
+          "formula": "G((prevConveyorReverse & !reverse1sDone & !Stop & EStopOK & !FaultLatched & !PartAtExit) -> ConveyorReverse)"
         },
         {
           "id": "S02-L6",
-          "formula": "G(reverse1sDone & RetryCount <= 2 & !Jam & Start & !Stop & EStopOK -> X(ConveyorForward & !ConveyorReverse))"
+          "formula": "G((prevConveyorReverse & reverse1sDone & !Jam & Start & !Stop & EStopOK & !FaultLatched & !PartAtExit) -> (ConveyorForward & !ConveyorReverse))"
         },
         {
           "id": "S02-L7",
@@ -2513,15 +2533,15 @@
         },
         {
           "id": "S02-L8",
-          "formula": "G(PartAtExit -> X(RetryCount=0 & !partActive))"
+          "formula": "G(PartAtExit -> (RetryCount=0 & !partActive))"
         },
         {
           "id": "S02-L9",
-          "formula": "G(RetryCount=2 & jamEvent -> X(FaultLatched & !ConveyorForward & !ConveyorReverse))"
+          "formula": "G((prevRetryCount=2 & jamEvent & !PartAtExit & !Stop & EStopOK) -> (FaultLatched & !ConveyorForward & !ConveyorReverse))"
         },
         {
           "id": "S02-L10",
-          "formula": "G(FaultLatched & !validFaultClear -> X(FaultLatched))"
+          "formula": "G((prevFaultLatched & !validFaultClear) -> FaultLatched)"
         }
       ],
       "test_cases": [
@@ -2601,7 +2621,7 @@
       "specs": [
         {
           "id": "S03-L1",
-          "formula": "G((HighHigh | Level<0 | Level>100 | !StartPermit | HighLevelAlarm) -> X(!InletValve))"
+          "formula": "G((HighHigh | Level<0 | Level>100 | !StartPermit | HighLevelAlarm) -> !InletValve)"
         },
         {
           "id": "S03-L2",
@@ -2617,15 +2637,15 @@
         },
         {
           "id": "S03-L5",
-          "formula": "G(Level<=30 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm -> X(InletValve))"
+          "formula": "G((Level<=30 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm) -> InletValve)"
         },
         {
           "id": "S03-L6",
-          "formula": "G(InletValve & Level<70 & StartPermit & !HighHigh & validLevel -> X(InletValve))"
+          "formula": "G((prevInletValve & Level<70 & StartPermit & !HighHigh & validLevel & !HighLevelAlarm) -> InletValve)"
         },
         {
           "id": "S03-L7",
-          "formula": "G(Level>=70 -> X(!InletValve))"
+          "formula": "G(Level>=70 -> !InletValve)"
         }
       ],
       "test_cases": [
@@ -2765,11 +2785,11 @@
       "specs": [
         {
           "id": "S04-L1",
-          "formula": "G(!EStopOK -> !ValveA & !ValveB & !Mixer & !OutletValve & X(BatchFault))"
+          "formula": "G(!EStopOK -> (!ValveA & !ValveB & !Mixer & !OutletValve & BatchFault))"
         },
         {
           "id": "S04-L2",
-          "formula": "G(startBatchEdge & (!validTargets | MixTime<=T#0s) -> X(BatchFault & stage=IDLE))"
+          "formula": "G((EStopOK & prevStage=IDLE & startBatchEdge & (!validTargets | MixTime<=T#0s)) -> (BatchFault & stage=IDLE))"
         },
         {
           "id": "S04-L3",
@@ -2785,31 +2805,31 @@
         },
         {
           "id": "S04-L6",
-          "formula": "G(stage=FILL_A & WeightA>=TargetA -> X(stage=FILL_B & !ValveA & ValveB))"
+          "formula": "G((EStopOK & !BatchFault & prevStage=FILL_A & WeightA>=TargetA) -> (stage=FILL_B & !ValveA & ValveB))"
         },
         {
           "id": "S04-L7",
-          "formula": "G(stage=FILL_B & WeightB>=TargetB -> X(stage=MIX))"
+          "formula": "G((EStopOK & !BatchFault & prevStage=FILL_B & WeightB>=TargetB) -> stage=MIX)"
         },
         {
           "id": "S04-L8",
-          "formula": "G(stage=MIX & !mixTimeDone -> Mixer)"
+          "formula": "G((EStopOK & !BatchFault & stage=MIX & !mixTimeDone) -> Mixer)"
         },
         {
           "id": "S04-L9",
-          "formula": "G(mixTimeDone -> X(!Mixer & stage=WAIT_MIX_COMPLETE))"
+          "formula": "G((EStopOK & !BatchFault & prevStage=MIX & mixTimeDone) -> (!Mixer & stage=WAIT_MIX_COMPLETE))"
         },
         {
           "id": "S04-L10",
-          "formula": "G(stage=WAIT_MIX_COMPLETE & !(MixComplete & DischargePermit) -> !OutletValve)"
+          "formula": "G((stage=WAIT_MIX_COMPLETE & !(MixComplete & DischargePermit)) -> !OutletValve)"
         },
         {
           "id": "S04-L11",
-          "formula": "G(stage=WAIT_MIX_COMPLETE & MixComplete & DischargePermit -> X(OutletValve))"
+          "formula": "G((EStopOK & !BatchFault & prevStage=WAIT_MIX_COMPLETE & MixComplete & DischargePermit) -> OutletValve)"
         },
         {
           "id": "S04-L12",
-          "formula": "G(resetEdge & EStopOK & !ValveA & !ValveB & !Mixer & !OutletValve -> X(!BatchFault))"
+          "formula": "G((resetEdge & EStopOK & !startBatchEdge & !prevValveA & !prevValveB & !prevMixer & !prevOutletValve) -> !BatchFault)"
         }
       ],
       "test_cases": [
@@ -2913,39 +2933,39 @@
         },
         {
           "id": "S05-L4",
-          "formula": "G((invalidTemperature | !Enable) -> X(!Fan1 & !Fan2))"
+          "formula": "G((invalidTemperature | !Enable) -> (!Fan1 & !Fan2))"
         },
         {
           "id": "S05-L5",
-          "formula": "G(stage=0 & Enable & Temperature>=35 & healthyFanAvailable -> X(stage=1))"
+          "formula": "G((prevStage=0 & Enable & !invalidTemperature & Temperature>=35 & Temperature<45) -> stage=1)"
         },
         {
           "id": "S05-L6",
-          "formula": "G(stage=1 & Temperature>=45 & twoHealthyFansAvailable -> X(stage=2))"
+          "formula": "G((Enable & !invalidTemperature & Temperature>=45) -> stage=2)"
         },
         {
           "id": "S05-L7",
-          "formula": "G(stage=2 & Temperature<42 & fan2MinOn10sDone -> X(stage=1))"
+          "formula": "G((prevStage=2 & Enable & !invalidTemperature & Temperature<42) -> stage=1)"
         },
         {
           "id": "S05-L8",
-          "formula": "G(stage=1 & Temperature<32 & activeFanMinOn10sDone -> X(stage=0))"
+          "formula": "G((prevStage=1 & Enable & !invalidTemperature & Temperature<32) -> stage=0)"
         },
         {
           "id": "S05-L9",
-          "formula": "G(Fan1 & !Fan1MinOn10sDone & !Fan1Fault -> X(Fan1))"
+          "formula": "G((prevFan1 & !Fan1MinOn10sDone & !Fan1Fault & !invalidTemperature & Enable) -> Fan1)"
         },
         {
           "id": "S05-L10",
-          "formula": "G(Fan2 & !Fan2MinOn10sDone & !Fan2Fault -> X(Fan2))"
+          "formula": "G((prevFan2 & !Fan2MinOn10sDone & !Fan2Fault & !invalidTemperature & Enable) -> Fan2)"
         },
         {
           "id": "S05-L11",
-          "formula": "G(!Fan1 & !Fan1MinOff10sDone & !invalidTemperature & Enable -> X(!Fan1))"
+          "formula": "G((!prevFan1 & !Fan1MinOff10sDone) -> !Fan1)"
         },
         {
           "id": "S05-L12",
-          "formula": "G(!Fan2 & !Fan2MinOff10sDone & !invalidTemperature & Enable -> X(!Fan2))"
+          "formula": "G((!prevFan2 & !Fan2MinOff10sDone) -> !Fan2)"
         }
       ],
       "test_cases": [
@@ -3261,39 +3281,39 @@
       "specs": [
         {
           "id": "S08-L1",
-          "formula": "G(RejectSolenoid -> PartPresent & ConveyorRunning)"
+          "formula": "G((RejectSolenoid & !prevRejectSolenoid) -> (defectRise & PartPresent & ConveyorRunning))"
         },
         {
           "id": "S08-L2",
-          "formula": "G(defectRise & PartPresent & ConveyorRunning & RejectCount<UDINT_MAX -> X(RejectCount=prevCount+1))"
+          "formula": "G((!Reset & defectRise & PartPresent & ConveyorRunning & prevCount<UDINT_MAX) -> RejectCount=prevCount+1)"
         },
         {
           "id": "S08-L3",
-          "formula": "G(defectRise & PartPresent & ConveyorRunning & RejectCount=UDINT_MAX -> X(RejectCount=UDINT_MAX))"
+          "formula": "G((!Reset & defectRise & PartPresent & ConveyorRunning & prevCount=UDINT_MAX) -> RejectCount=UDINT_MAX)"
         },
         {
           "id": "S08-L4",
-          "formula": "G((!PartPresent | !ConveyorRunning) & defectRise -> X(RejectCount=prevCount & !RejectSolenoid))"
+          "formula": "G((!Reset & !(defectRise & PartPresent & ConveyorRunning)) -> RejectCount=prevCount)"
         },
         {
           "id": "S08-L5",
-          "formula": "G(RejectSolenoid & !pulse300msDone -> X(RejectSolenoid))"
+          "formula": "G((prevRejectSolenoid & !pulse300msDone) -> RejectSolenoid)"
         },
         {
           "id": "S08-L6",
-          "formula": "G(pulse300msDone -> X(!RejectSolenoid))"
+          "formula": "G((pulse300msDone & !(defectRise & PartPresent & ConveyorRunning)) -> !RejectSolenoid)"
         },
         {
           "id": "S08-L7",
-          "formula": "G(Reset -> X(RejectCount=0))"
+          "formula": "G(Reset -> RejectCount=0)"
         },
         {
           "id": "S08-L8",
-          "formula": "G(RejectSolenoid & Reset -> X(RejectSolenoid))"
+          "formula": "G((Reset & prevRejectSolenoid & !pulse300msDone) -> RejectSolenoid)"
         },
         {
           "id": "S08-L9",
-          "formula": "G(Defect & prevDefect -> X(RejectCount=prevCount))"
+          "formula": "G((!Reset & Defect & prevDefect) -> RejectCount=prevCount)"
         }
       ],
       "test_cases": [
@@ -3510,7 +3530,7 @@
         "record": "No external source text copied; see docs/DATASET_SPEC.md for generation, review, and rationale."
       },
       "adaptation_notes": "Original synthetic task. State and timing assumptions are made explicit so the test oracle is deterministic.",
-      "assumptions": "Setpoint and Temperature are interpreted in Celsius. CycleTime is accumulated by the continuous-validity timer. The deadband includes temperatures above Setpoint-1 and below Setpoint; if the heater is off in that interval, it remains off.",
+      "assumptions": "Setpoint and Temperature are interpreted in Celsius. validInputs means SensorValid is TRUE and both values are in range, regardless of Enable. CycleTime is accumulated by the continuous-validity timer. Heating is inhibited until any sensor fault clears. In the deadband the heater retains its previous command subject to the enable and fault interlocks.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
@@ -3519,31 +3539,31 @@
         },
         {
           "id": "S10-L2",
-          "formula": "G(validInputs & Temperature<=Setpoint-1 -> X(Heater))"
+          "formula": "G((Enable & validInputs & !SensorFault & Temperature<=Setpoint-1) -> Heater)"
         },
         {
           "id": "S10-L3",
-          "formula": "G(Heater & Temperature<Setpoint & validInputs -> X(Heater))"
+          "formula": "G((prevHeater & Enable & validInputs & !SensorFault & Temperature<Setpoint) -> Heater)"
         },
         {
           "id": "S10-L4",
-          "formula": "G(!Heater & Temperature>Setpoint-1 & Temperature<Setpoint & validInputs -> X(!Heater))"
+          "formula": "G((!prevHeater & Temperature>Setpoint-1 & Temperature<Setpoint) -> !Heater)"
         },
         {
           "id": "S10-L5",
-          "formula": "G(Temperature>=Setpoint -> X(!Heater))"
+          "formula": "G((!Enable | Temperature>=Setpoint | SensorFault) -> !Heater)"
         },
         {
           "id": "S10-L6",
-          "formula": "G(!validInputs -> X(!Heater & SensorFault))"
+          "formula": "G(!validInputs -> (!Heater & SensorFault))"
         },
         {
           "id": "S10-L7",
-          "formula": "G(SensorFault & !validFor2s -> X(SensorFault))"
+          "formula": "G((prevSensorFault & !validFor2s) -> SensorFault)"
         },
         {
           "id": "S10-L8",
-          "formula": "G(validFor2s -> X(!SensorFault))"
+          "formula": "G((validInputs & validFor2s) -> !SensorFault)"
         },
         {
           "id": "S10-L9",

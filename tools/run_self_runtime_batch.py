@@ -1,4 +1,4 @@
-"""Execute all offline-compile-pass self-agent candidates on local CODESYS runtime."""
+"""Execute self-agent candidates that passed the linked offline build."""
 from __future__ import annotations
 
 import argparse
@@ -42,12 +42,16 @@ def main() -> int:
     parser.add_argument("--task", action="append", help="Limit to one or more task IDs")
     parser.add_argument("--model", action="append", help="Limit to a model ID")
     parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--linked-results", type=Path, required=True,
+                        help="diagnostics.jsonl from recheck_linked_matrix.py")
     args = parser.parse_args()
     if not os.environ.get("CODESYS_TEST_USER") or not os.environ.get("CODESYS_TEST_PASSWORD"):
         raise SystemExit("Set CODESYS_TEST_USER and CODESYS_TEST_PASSWORD only in this process environment.")
     filter_tasks = set(args.task or [])
     filter_models = set(args.model or MODELS)
     rows = list(csv.DictReader((ROOT / "experiments/results.csv").open(encoding="utf-8-sig", newline="")))
+    linked = {record["run_id"]: record for record in (
+        json.loads(line) for line in args.linked_results.read_text(encoding="utf-8").splitlines())}
     selected = [row for row in rows if row["framework"] == "Self-developed harness"
                 and row["model_id"] in filter_models
                 and (not filter_tasks or row["task_id"] in filter_tasks)]
@@ -75,8 +79,12 @@ def main() -> int:
                                              "active_candidate":f"{task_id} {model_id}",
                                              "updated_at":datetime.now().isoformat(timespec="seconds"),
                                              "records":records}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        if row["status"] != "COMPILE_PASS":
-            record.update({"status":"NOT_RUN_OFFICIAL_COMPILE_FAIL", "scenario_executed":0,
+        checked = linked.get(row["run_id"], {})
+        eligible = (checked.get("status") == "PASS" and checked.get("source_sha256") == source_hash
+                    and checked.get("boot_bytes", 0) > 0 and checked.get("signatures"))
+        record["linked_compile_status"] = checked.get("status", "NOT_RUN")
+        if not eligible:
+            record.update({"status":"NOT_RUN_LINKED_BUILD_NOT_CONFIRMED", "scenario_executed":0,
                            "scenario_blocked":len(suite["cases"])})
         else:
             existing = latest_matching(task_id, source_hash, suite_hash)

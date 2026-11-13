@@ -58,7 +58,7 @@ def run_task(task: dict, model_cfg: dict, run_dir: Path, config_path: Path,
         if compile_result["status"] == "PASS":
             status = "COMPILE_PASS"
             break
-        if compile_result["status"] in ("NOT_CONFIGURED", "UNAVAILABLE", "TIMEOUT"):
+        if compile_result["status"] in ("NOT_CONFIGURED", "UNAVAILABLE", "TIMEOUT", "UNSUPPORTED_BINDING"):
             if compile_result["status"] == "NOT_CONFIGURED":
                 status = ("GENERATED_STATIC_FAIL_COMPILER_UNAVAILABLE" if static_errors
                           else "GENERATED_STATIC_PASS_COMPILER_UNAVAILABLE")
