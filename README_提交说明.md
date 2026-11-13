@@ -16,7 +16,8 @@
 - `experiments/formal_verification/`：四份 P02 翻译输入、CBMC harness、日志和结果。
 - `experiments/diagnostics/deepseek/`：DeepSeek 空输出问题的受控诊断和恢复证据；这些不计入原始矩阵的额外格数。
 - `experiments/*usage*.jsonl`：正式矩阵、早期 pilot 和诊断调用的用量审计日志；pilot 的临时性能表与摘要已清理。
-- `report/实验报告.pdf`、`.docx`、`.md`：最终实验报告的三种格式。
+- `report/project_report_en.pdf`、`.docx`、`.md`：英文正式实验报告及可编辑源稿，供课程提交。
+- `report/实验报告.pdf`、`.docx`、`.md`：中文原稿，作为项目归档材料保留。
 
 ## 结果摘要
 

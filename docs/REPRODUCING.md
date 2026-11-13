@@ -24,7 +24,7 @@ py --version
 py -m unittest discover -s tests -v
 ```
 
-Python 检查不会调用模型 API。查看最终结果无需安装 Node 或 CODESYS：打开 `experiments/results.csv`、`report/实验报告.pdf` 和 `验收对照表.md` 即可。
+Python 检查不会调用模型 API。查看最终结果无需安装 Node 或 CODESYS：打开 `experiments/results.csv`、英文正式报告 `report/project_report_en.pdf` 和 `验收对照表.md` 即可。中文报告原稿也保留在 `report/`。
 
 若要运行 Pi 基线：
 

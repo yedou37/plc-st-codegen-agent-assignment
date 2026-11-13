@@ -12,7 +12,7 @@
 - **LTL 验证范围：** 数据集提供 201 条 scan-level LTL 规约；CBMC 有界检查覆盖 P02 的四种输出，PLCVerif 未纳入本项目验证。
 - DeepSeek 修复前后的实验和调用费用记录保留在 `experiments/`，但不保留 prompt、模型响应正文或 API key。
 
-完整验收判断见 [`验收对照表.md`](验收对照表.md)，提交内容清单见 [`README_提交说明.md`](README_提交说明.md)，分析细节见 [`report/实验报告.pdf`](report/实验报告.pdf) 或 [`report/实验报告.docx`](report/实验报告.docx)。
+完整验收判断见 [`验收对照表.md`](验收对照表.md)，提交内容清单见 [`README_提交说明.md`](README_提交说明.md)。英文正式实验报告见 [`report/project_report_en.pdf`](report/project_report_en.pdf)；可编辑版本和 Markdown 源稿也一并提供。中文原稿保留在 `report/`。
 
 ## 快速开始
 
