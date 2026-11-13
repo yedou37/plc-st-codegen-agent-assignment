@@ -1,6 +1,6 @@
 {
   "benchmark": "PLC-ST-Agent-Benchmark",
-  "version": "1.0",
+  "version": "1.1",
   "scan_semantics": "Inputs are sampled once per scan; outputs and state are observed at scan boundaries. X denotes the next scan.",
   "spec_profile": "Future-time LTL with atomic propositions for typed comparisons and named timer/state predicates. Macros are documented and expanded by the verifier adapter.",
   "task_count": 30,
@@ -409,7 +409,7 @@
         },
         {
           "id": "P04-L4",
-          "formula": "G(VFD_RUN -> X(PUMP_RUNTIME_ACC = PUMP_RUNTIME_ACC + CycleTime))"
+          "formula": "G((VFD_RUN -> PUMP_RUNTIME_ACC = pre.PUMP_RUNTIME_ACC + CycleTime) & (!VFD_RUN -> PUMP_RUNTIME_ACC = pre.PUMP_RUNTIME_ACC))"
         },
         {
           "id": "P04-L5",
@@ -429,7 +429,8 @@
           "id": "P04-T3",
           "scenario": "After valid debounce with E-stop permissive: pump runs; runtime adds CycleTime; E-stop drop turns it off immediately."
         }
-      ]
+      ],
+      "observation_semantics": "For L4, inputs belong to the current invocation, outputs are post-call, and pre.PUMP_RUNTIME_ACC is the accumulator immediately before this call. CycleTime is the invocation interval."
     },
     {
       "id": "P05",
@@ -637,7 +638,7 @@
         },
         {
           "id": "P07-L4",
-          "formula": "G(AtMost3(pumpGroup[*].RunComd))"
+          "formula": "G(mode -> AtMost3(pumpGroup[*].RunComd))"
         }
       ],
       "test_cases": [

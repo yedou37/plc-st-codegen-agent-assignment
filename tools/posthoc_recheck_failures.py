@@ -117,7 +117,7 @@ def main() -> int:
         "adapter_changes": [
             "Adds installed CODESYS Standard 3.5.22.0 (System) library for IEC standard symbols.",
             "Imports task-provided ST_Pump and ST_Recipe as DUTs when required.",
-            "Builds the POU without binding a VAR_IN_OUT program to an empty task call.",
+            "Calls every POU from a cyclic wrapper and binds VAR_INPUT / VAR_IN_OUT storage.",
             "Strips Markdown code-fence wrappers from the compiler input view only.",
         ],
         "limitations": [

@@ -16,7 +16,13 @@
             "VFD_RUN": false,
             "PUMP_RUNTIME_ACC": "LTIME#0ns",
             "PUMP_MAINT_DUE": false
-          }
+          },
+          "before_call": [
+            "runtime_before := dut.PUMP_RUNTIME_ACC;"
+          ],
+          "scan_checks": [
+            "((dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before + TIME_TO_LTIME(dut.CycleTime))) OR (NOT dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before)))"
+          ]
         }
       ],
       "scenario": "Power-up: VFD_RUN=FALSE, runtime=0, maintenance=FALSE."
@@ -31,7 +37,13 @@
           "cycles": 1,
           "expect": {
             "VFD_RUN": false
-          }
+          },
+          "before_call": [
+            "runtime_before := dut.PUMP_RUNTIME_ACC;"
+          ],
+          "scan_checks": [
+            "((dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before + TIME_TO_LTIME(dut.CycleTime))) OR (NOT dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before)))"
+          ]
         }
       ],
       "scenario": "VISCOSITY_OK shorter than DebounceTime: pump remains off."
@@ -46,7 +58,13 @@
           "cycles": 3,
           "expect": {
             "VFD_RUN": true
-          }
+          },
+          "before_call": [
+            "runtime_before := dut.PUMP_RUNTIME_ACC;"
+          ],
+          "scan_checks": [
+            "((dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before + TIME_TO_LTIME(dut.CycleTime))) OR (NOT dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before)))"
+          ]
         },
         {
           "set": {
@@ -55,10 +73,19 @@
           "cycles": 1,
           "expect": {
             "VFD_RUN": false
-          }
+          },
+          "before_call": [
+            "runtime_before := dut.PUMP_RUNTIME_ACC;"
+          ],
+          "scan_checks": [
+            "((dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before + TIME_TO_LTIME(dut.CycleTime))) OR (NOT dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before)))"
+          ]
         }
       ],
       "scenario": "After valid debounce with E-stop permissive: pump runs; runtime adds CycleTime; E-stop drop turns it off immediately."
     }
+  ],
+  "declarations": [
+    "runtime_before : LTIME"
   ]
 }

@@ -70,7 +70,7 @@ V["P07"] = {"task_id":"P07", "declarations":["pumpGroup : ARRAY[1..5] OF ST_Pump
     c("P07-T1", a({"mode":False,"start":True,"@pumpGroup[1].selection":False,"@pumpGroup[2].selection":True,
                     "@pumpGroup[3].selection":False,"@pumpGroup[4].selection":False,"@pumpGroup[5].selection":False},
                    {"@pumpGroup[2].RunComd":True,"@pumpGroup[1].RunComd":False})),
-    c("P07-T2", a({"start":False,"mode":True,"@pumpGroup[1].priority":1,"@pumpGroup[2].priority":5,
+    c("P07-T2", a({"start":True,"mode":True,"@pumpGroup[1].priority":1,"@pumpGroup[2].priority":5,
                     "@pumpGroup[3].priority":3,"@pumpGroup[4].priority":4,"@pumpGroup[5].priority":2},
                    {"@pumpGroup[2].RunComd":True,"@pumpGroup[4].RunComd":True,"@pumpGroup[5].RunComd":True})),
     c("P07-T3", a({"stop":True}, {"@pumpGroup[1].RunComd":False,"@pumpGroup[2].RunComd":False,
@@ -308,6 +308,27 @@ V["S10"] = {"task_id":"S10", "cases":[
     c("S10-T2", a({"Temperature":22.0}, {"Heater":False})),
     c("S10-T3", a({"SensorValid":False}, {"Heater":False,"SensorFault":True})),
 ]}
+
+
+# Keep assumption-only assertions out of default teacher-requirement scoring.
+for case in V["P01"]["cases"]:
+    for step in case["steps"]:
+        expected = step.get("expect", {})
+        optional = {name: value for name, value in expected.items()
+                    if value is False and name != "Completion_Light"}
+        if optional:
+            step["expect_assumption"] = optional
+            step["expect"] = {name: value for name, value in expected.items() if name not in optional}
+
+# Snapshot public outputs before every call: no private candidate state injection.
+V["P04"]["declarations"] = ["runtime_before : LTIME"]
+for case in V["P04"]["cases"]:
+    for step in case["steps"]:
+        step["before_call"] = ["runtime_before := dut.PUMP_RUNTIME_ACC;"]
+        step["scan_checks"] = [
+            "((dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before + TIME_TO_LTIME(dut.CycleTime))) OR "
+            "(NOT dut.VFD_RUN AND (dut.PUMP_RUNTIME_ACC = runtime_before)))"
+        ]
 
 
 def main() -> None:

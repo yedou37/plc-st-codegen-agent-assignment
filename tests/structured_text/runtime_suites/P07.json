@@ -32,7 +32,7 @@
       "steps": [
         {
           "set": {
-            "start": false,
+            "start": true,
             "mode": true,
             "@pumpGroup[1].priority": 1,
             "@pumpGroup[2].priority": 5,

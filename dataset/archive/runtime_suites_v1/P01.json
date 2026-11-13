@@ -1,0 +1,87 @@
+{
+  "task_id": "P01",
+  "cases": [
+    {
+      "id": "P01-T1",
+      "steps": [
+        {
+          "set": {
+            "bottleSensor": true
+          },
+          "cycles": 1,
+          "expect": {
+            "Pump_Motor": true
+          }
+        }
+      ],
+      "scenario": "Idle + bottleSensor↑: enter CLEAN; Pump_Motor=TRUE."
+    },
+    {
+      "id": "P01-T2",
+      "steps": [
+        {
+          "set": {
+            "bottleSensor": false,
+            "cleaningConfirmButton": true
+          },
+          "cycles": 1,
+          "expect": {
+            "Pump_Motor": false,
+            "Filling_Valve": true
+          }
+        }
+      ],
+      "scenario": "CLEAN + cleaningConfirmButton↑: enter FILL; pump off and filling valve on."
+    },
+    {
+      "id": "P01-T3",
+      "steps": [
+        {
+          "set": {
+            "cleaningConfirmButton": false,
+            "fillingConfirmButton": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "fillingConfirmButton": false,
+            "cappingConfirmButton": true
+          },
+          "cycles": 1
+        },
+        {
+          "set": {
+            "cappingConfirmButton": false,
+            "packingConfirmButton": true
+          },
+          "cycles": 1,
+          "expect": {
+            "Completion_Light": true
+          }
+        }
+      ],
+      "scenario": "Complete each station in order: CAP -> PACK -> PACKED; Completion_Light on."
+    },
+    {
+      "id": "P01-T4",
+      "steps": [
+        {
+          "set": {
+            "packingConfirmButton": false,
+            "finishedButton": true
+          },
+          "cycles": 1,
+          "expect": {
+            "Pump_Motor": false,
+            "Filling_Valve": false,
+            "Capping_Machine": false,
+            "Packing_Machine": false,
+            "Completion_Light": false
+          }
+        }
+      ],
+      "scenario": "PACKED + finishedButton↑: reset to IDLE; all actuators and light off."
+    }
+  ]
+}

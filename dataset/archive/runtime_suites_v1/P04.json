@@ -1,0 +1,64 @@
+{
+  "task_id": "P04",
+  "cases": [
+    {
+      "id": "P04-T1",
+      "steps": [
+        {
+          "set": {
+            "VISCOSITY_OK": false,
+            "PASTE_E_STOP_NC": true,
+            "DebounceTime": "T#100ms",
+            "CycleTime": "T#50ms"
+          },
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": false,
+            "PUMP_RUNTIME_ACC": "LTIME#0ns",
+            "PUMP_MAINT_DUE": false
+          }
+        }
+      ],
+      "scenario": "Power-up: VFD_RUN=FALSE, runtime=0, maintenance=FALSE."
+    },
+    {
+      "id": "P04-T2",
+      "steps": [
+        {
+          "set": {
+            "VISCOSITY_OK": true
+          },
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": false
+          }
+        }
+      ],
+      "scenario": "VISCOSITY_OK shorter than DebounceTime: pump remains off."
+    },
+    {
+      "id": "P04-T3",
+      "steps": [
+        {
+          "set": {
+            "VISCOSITY_OK": true
+          },
+          "cycles": 3,
+          "expect": {
+            "VFD_RUN": true
+          }
+        },
+        {
+          "set": {
+            "PASTE_E_STOP_NC": false
+          },
+          "cycles": 1,
+          "expect": {
+            "VFD_RUN": false
+          }
+        }
+      ],
+      "scenario": "After valid debounce with E-stop permissive: pump runs; runtime adds CycleTime; E-stop drop turns it off immediately."
+    }
+  ]
+}

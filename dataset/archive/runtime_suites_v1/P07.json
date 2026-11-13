@@ -1,0 +1,73 @@
+{
+  "task_id": "P07",
+  "declarations": [
+    "pumpGroup : ARRAY[1..5] OF ST_Pump"
+  ],
+  "call": "dut(pumpGroup := pumpGroup);",
+  "cases": [
+    {
+      "id": "P07-T1",
+      "steps": [
+        {
+          "set": {
+            "mode": false,
+            "start": true,
+            "@pumpGroup[1].selection": false,
+            "@pumpGroup[2].selection": true,
+            "@pumpGroup[3].selection": false,
+            "@pumpGroup[4].selection": false,
+            "@pumpGroup[5].selection": false
+          },
+          "cycles": 1,
+          "expect": {
+            "@pumpGroup[2].RunComd": true,
+            "@pumpGroup[1].RunComd": false
+          }
+        }
+      ],
+      "scenario": "Manual, selected pump 2, start edge: pump 2 runs; unselected pumps stop."
+    },
+    {
+      "id": "P07-T2",
+      "steps": [
+        {
+          "set": {
+            "start": false,
+            "mode": true,
+            "@pumpGroup[1].priority": 1,
+            "@pumpGroup[2].priority": 5,
+            "@pumpGroup[3].priority": 3,
+            "@pumpGroup[4].priority": 4,
+            "@pumpGroup[5].priority": 2
+          },
+          "cycles": 1,
+          "expect": {
+            "@pumpGroup[2].RunComd": true,
+            "@pumpGroup[4].RunComd": true,
+            "@pumpGroup[5].RunComd": true
+          }
+        }
+      ],
+      "scenario": "Automatic priorities [1,5,3,4,2], start: pumps 2,4,5 run (tie breaks by lower index)."
+    },
+    {
+      "id": "P07-T3",
+      "steps": [
+        {
+          "set": {
+            "stop": true
+          },
+          "cycles": 1,
+          "expect": {
+            "@pumpGroup[1].RunComd": false,
+            "@pumpGroup[2].RunComd": false,
+            "@pumpGroup[3].RunComd": false,
+            "@pumpGroup[4].RunComd": false,
+            "@pumpGroup[5].RunComd": false
+          }
+        }
+      ],
+      "scenario": "stop TRUE: all five commands FALSE in either mode."
+    }
+  ]
+}

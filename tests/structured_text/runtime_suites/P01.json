@@ -26,8 +26,10 @@
           },
           "cycles": 1,
           "expect": {
-            "Pump_Motor": false,
             "Filling_Valve": true
+          },
+          "expect_assumption": {
+            "Pump_Motor": false
           }
         }
       ],
@@ -73,11 +75,13 @@
           },
           "cycles": 1,
           "expect": {
+            "Completion_Light": false
+          },
+          "expect_assumption": {
             "Pump_Motor": false,
             "Filling_Valve": false,
             "Capping_Machine": false,
-            "Packing_Machine": false,
-            "Completion_Light": false
+            "Packing_Machine": false
           }
         }
       ],

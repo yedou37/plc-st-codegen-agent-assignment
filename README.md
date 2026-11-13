@@ -1,5 +1,7 @@
 # PLC Structured Text 代码生成大作业
 
+当前编译器和规约修订说明见 [EVALUATION_UPDATE.md](docs/EVALUATION_UPDATE.md)。下列数值属于保留的历史实验；修订后的 CODESYS 对照验证及新统计须另行运行，旧矩阵和日志未被覆盖。
+
 本项目依据课程大作业要求，包含 30 题 Structured Text 数据集、自研 PLC 代码生成 Agent、四条件模型实验、生成源码、CODESYS 编译与 runtime 测试、P02 自动化测试与有界验证，以及实验报告。本文说明项目目标、结果、目录结构和运行入口；完整环境配置与复现命令见 [`docs/REPRODUCING.md`](docs/REPRODUCING.md)，Agent 实现约定见 [`AGENTS.md`](AGENTS.md)。
 
 ## 项目结果与验证范围

@@ -35,7 +35,7 @@ PUBLIC = {
 "G(!PASTE_E_STOP_NC -> !VFD_RUN & debounceElapsed = 0)",
 "G(VFD_RUN -> PASTE_E_STOP_NC & viscosityValid)",
 "G(VISCOSITY_OK & PASTE_E_STOP_NC & debounceElapsed >= DebounceTime -> X(viscosityValid))",
-"G(VFD_RUN -> X(PUMP_RUNTIME_ACC = PUMP_RUNTIME_ACC + CycleTime))",
+"G((VFD_RUN -> PUMP_RUNTIME_ACC = pre.PUMP_RUNTIME_ACC + CycleTime) & (!VFD_RUN -> PUMP_RUNTIME_ACC = pre.PUMP_RUNTIME_ACC))",
 "G(PUMP_RUNTIME_ACC >= T#500h -> PUMP_MAINT_DUE)"],
 ["Power-up: VFD_RUN=FALSE, runtime=0, maintenance=FALSE.", "VISCOSITY_OK shorter than DebounceTime: pump remains off.", "After valid debounce with E-stop permissive: pump runs; runtime adds CycleTime; E-stop drop turns it off immediately."],
 "Timer uses supplied elapsed scan time; nonpositive DebounceTime or CycleTime is treated as invalid and inhibits run."),
@@ -56,7 +56,7 @@ PUBLIC = {
 "G(stop -> X(AND_i !pumpGroup[i].RunComd))",
 "G(mode & start & !stop -> selectedAuto_i <-> rank_i <= 3)",
 "G(!mode & start & !stop -> pumpGroup[i].RunComd <-> pumpGroup[i].selection)",
-"G(AtMost3(pumpGroup[*].RunComd))"],
+"G(mode -> AtMost3(pumpGroup[*].RunComd))"],
 ["Manual, selected pump 2, start edge: pump 2 runs; unselected pumps stop.", "Automatic priorities [1,5,3,4,2], start: pumps 2,4,5 run (tie breaks by lower index).", "stop TRUE: all five commands FALSE in either mode."],
 "Auto mode selects exactly the three highest-ranked pumps while start is held; ties break by lower array index. Stop has priority; selection changes are applied each scan."),
 "P08": ("medium", [
@@ -229,7 +229,8 @@ def main():
             "ltl_profile":"Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
             "specs":[{"id":f"{item['id']}-L{i+1}","formula":s} for i,s in enumerate(item["specs"])],
             "test_cases":[{"id":f"{item['id']}-T{i+1}","scenario":t} for i,t in enumerate(item["tests"])]})
-    result = {"benchmark":"PLC-ST-Agent-Benchmark","version":"1.0","scan_semantics":"Inputs are sampled once per scan; outputs and state are observed at scan boundaries. X denotes the next scan.","spec_profile":"Future-time LTL with atomic propositions for typed comparisons and named timer/state predicates. Macros are documented and expanded by the verifier adapter.","task_count":len(tasks),"public_count":counter-1,"self_built_count":len(SYNTHETIC),"tasks":tasks}
+    next(t for t in tasks if t["id"] == "P04")["observation_semantics"] = "For L4, inputs belong to the current invocation, outputs are post-call, and pre.PUMP_RUNTIME_ACC is the accumulator immediately before this call. CycleTime is the invocation interval."
+    result = {"benchmark":"PLC-ST-Agent-Benchmark","version":"1.1","scan_semantics":"Inputs are sampled once per scan; outputs and state are observed at scan boundaries. X denotes the next scan.","spec_profile":"Future-time LTL with atomic propositions for typed comparisons and named timer/state predicates. Macros are documented and expanded by the verifier adapter.","task_count":len(tasks),"public_count":counter-1,"self_built_count":len(SYNTHETIC),"tasks":tasks}
     OUT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     with (HERE/"question_bank_original.json").open("w",encoding="utf-8") as f: json.dump(bank,f,ensure_ascii=False,indent=2); f.write("\n")
     print(f"wrote {OUT}: {len(tasks)} tasks ({counter-1} public, {len(SYNTHETIC)} self-built)")

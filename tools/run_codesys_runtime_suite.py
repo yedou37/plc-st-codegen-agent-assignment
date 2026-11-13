@@ -129,6 +129,7 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
         raise ValueError("Suite has no cases")
     types = variable_types(pous)
     assertions: list[dict] = []
+    scan_observers = set()
     stages: list[str] = []
     stage_no = 0
     for case_index, case in enumerate(cases, start=1):
@@ -141,7 +142,17 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
                 target = path[1:] if path.startswith("@") else "dut." + path
                 type_key = path[1:].split(".")[0].lower() if path.startswith("@") else path.split(".")[0].lower()
                 lines.append(f"{target} := {literal(value, types.get(type_key))};")
+            lines.extend(action.get("before_call", []))
             lines.append(suite.get("call", "dut();"))
+            for check_index, expression in enumerate(action.get("scan_checks", []), start=1):
+                obs_name = f"scan_c{case_index}_s{step_index}_a{check_index}"
+                scan_observers.add(obs_name)
+                # Latch every scan's result, so a later correct value cannot erase a failure.
+                lines.append(f"{obs_name} := {obs_name} AND ({expression});")
+                lines.append(f"case_pass[{case_index}] := case_pass[{case_index}] AND {obs_name};")
+                assertions.append({"case_index":case_index, "step_index":step_index,
+                    "assertion_index":check_index, "path":"scan invariant",
+                    "expression":expression, "expected":True, "observer":obs_name, "type":"BOOL"})
             cycles = int(action.get("cycles", 1))
             if cycles < 1:
                 raise ValueError("cycles must be >= 1")
@@ -202,7 +213,8 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
     for declaration in suite.get("declarations", []):
         declarations.append("    " + declaration.rstrip("; ") + ";")
     for assertion in assertions:
-        declarations.append(f"    {assertion['observer']} : {assertion['type']};")
+        initializer = " := TRUE" if assertion['observer'] in scan_observers else ""
+        declarations.append(f"    {assertion['observer']} : {assertion['type']}{initializer};")
     declarations += ["END_VAR", ""]
     implementation = [
         "IF NOT test_done THEN",

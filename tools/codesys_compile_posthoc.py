@@ -14,6 +14,8 @@ import time
 import hashlib
 from pathlib import Path
 
+from codesys_invocation import source_pous, compile_caller, SourceSyntaxError
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROFILE = "CODESYS V3.5 SP22 Patch 4"
@@ -134,6 +136,8 @@ def type_declarations(source: str, task_id: str) -> list[str]:
 
 def script_source(input_path: Path, project_path: Path, result_path: Path, output_path: Path,
                   dut_declarations: list[str], exit_process: bool = True) -> str:
+    pous = source_pous(input_path.read_text(encoding="utf-8-sig"), split_pou)
+    caller = compile_caller(pous)
     values = {
         "input_path": str(input_path.resolve()),
         "project_path": str(project_path.resolve()),
@@ -142,6 +146,7 @@ def script_source(input_path: Path, project_path: Path, result_path: Path, outpu
     }
     embedded = "\n".join(f"{key.upper()} = {value!r}" for key, value in values.items())
     embedded += "\nDUT_DECLARATIONS = " + repr(dut_declarations)
+    embedded += "\nSOURCE_POUS = " + repr(pous) + "\nCALLER = " + repr(caller)
     exit_line = 'system.exit(0 if result.get("status") == "PASS" else 1)' if exit_process else "pass"
     return f'''# IronPython script executed by the installed CODESYS profile.
 import io, json, re, traceback
@@ -150,53 +155,6 @@ from scriptengine import *
 result = {{"status":"ERROR", "errors":[], "warnings":[]}}
 project = None
 try:
-    with io.open(INPUT_PATH, "r", encoding="utf-8-sig") as stream:
-        source = stream.read()
-    lines = source.replace("\\r\\n", "\\n").replace("\\r", "\\n").splitlines()
-    header_re = re.compile(r"^\\s*(PROGRAM|FUNCTION_BLOCK|FUNCTION)\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s*:\\s*(.+?))?\\s*$", re.IGNORECASE)
-    header_index = None
-    match = None
-    for index, line in enumerate(lines):
-        candidate = header_re.match(line)
-        if candidate:
-            header_index, match = index, candidate
-            break
-    if match is None:
-        raise Exception("No PROGRAM, FUNCTION_BLOCK, or FUNCTION declaration found")
-    kind, name, return_type = match.group(1).upper(), match.group(2), match.group(3)
-    return_type = return_type.strip() if return_type else None
-    if kind == "FUNCTION" and not return_type:
-        raise Exception("FUNCTION declaration must specify a return type")
-    end_re = re.compile(r"^\\s*END_(?:PROGRAM|FUNCTION_BLOCK|FUNCTION)\\s*;?\\s*$", re.IGNORECASE)
-    var_re = re.compile(r"^\\s*VAR(?:_[A-Z_]+)?(?:\\s+.*)?\\s*$", re.IGNORECASE)
-    end_var_re = re.compile(r"^\\s*END_VAR\\s*;?\\s*$", re.IGNORECASE)
-    decl_end, cursor = header_index + 1, header_index + 1
-    while cursor < len(lines):
-        probe, in_comment = cursor, False
-        while probe < len(lines):
-            stripped = lines[probe].strip()
-            if not stripped:
-                probe += 1
-                continue
-            if in_comment or stripped.startswith("(*"):
-                if "*)" in stripped: in_comment = False
-                else: in_comment = True
-                probe += 1
-                continue
-            break
-        if probe >= len(lines) or not var_re.match(lines[probe]): break
-        block_end = probe + 1
-        while block_end < len(lines) and not end_var_re.match(lines[block_end]): block_end += 1
-        if block_end >= len(lines): raise Exception("Variable declaration block is missing END_VAR")
-        decl_end, cursor = block_end + 1, block_end + 1
-    declaration = "\\n".join(lines[header_index:decl_end]).strip() + "\\n"
-    body_lines = lines[decl_end:]
-    while body_lines and not body_lines[-1].strip(): body_lines.pop()
-    while body_lines and end_re.match(body_lines[-1]):
-        body_lines.pop()
-        while body_lines and not body_lines[-1].strip(): body_lines.pop()
-    implementation = "\\n".join(body_lines).strip() + "\\n"
-
     project = projects.create(PROJECT_PATH)
     devices = device_repository.get_all_devices("{DEVICE_NAME}", None)
     matches = [item for item in devices if item.device_id.id == "{DEVICE_ID}"]
@@ -212,11 +170,21 @@ try:
         if not dut_match: raise Exception("Invalid posthoc DUT declaration")
         dut = app.create_dut(dut_match.group(1), DutType.Structure)
         dut.textual_declaration.replace(dut_source)
-    if kind == "PROGRAM": pou = app.create_pou(name, PouType.Program, ImplementationLanguages.st)
-    elif kind == "FUNCTION_BLOCK": pou = app.create_pou(name, PouType.FunctionBlock, ImplementationLanguages.st)
-    else: pou = app.create_function(name, return_type, ImplementationLanguages.st)
-    pou.textual_declaration.replace(declaration)
-    pou.textual_implementation.replace(implementation)
+    for source_pou in SOURCE_POUS:
+        kind, name = source_pou["kind"], source_pou["name"]
+        if kind == "PROGRAM": pou = app.create_pou(name, PouType.Program, ImplementationLanguages.st)
+        elif kind == "FUNCTION_BLOCK": pou = app.create_pou(name, PouType.FunctionBlock, ImplementationLanguages.st)
+        else: pou = app.create_function(name, source_pou["return_type"], ImplementationLanguages.st)
+        pou.textual_declaration.replace(source_pou["declaration"])
+        pou.textual_implementation.replace(source_pou["implementation"])
+    runner = app.create_pou(CALLER["name"], PouType.Program, ImplementationLanguages.st)
+    runner.textual_declaration.replace(CALLER["declaration"])
+    runner.textual_implementation.replace(CALLER["implementation"])
+    task_config = app.create_task_configuration()
+    task = task_config.create_task("MainTask")
+    task.kind_of_task = KindOfTask.Cyclic
+    task.interval = "t#50ms"
+    task.pous.add(CALLER["name"])
     standard_libraries = [library for library in librarymanager.get_all_libraries()
                           if str(library.title) == "Standard" and str(library.company) == "System"
                           and str(library.version) == "3.5.22.0"]
@@ -229,7 +197,8 @@ try:
     for category in system.get_message_categories(False):
         system.clear_messages(category)
     app.rebuild()
-    result["pou"] = {{"kind":kind, "name":name,
+    result["referenced_pous"] = CALLER["referenced_pous"]
+    result["pou"] = {{"kind":SOURCE_POUS[0]["kind"], "name":SOURCE_POUS[0]["name"],
                      "device_name":"{DEVICE_NAME}",
                      "device_id":target.device_id.id,
                      "device_version":target.device_id.version}}
@@ -259,7 +228,8 @@ def compile_one(source_path: Path, task_id: str, output_path: Path, timeout: int
     output_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         source = source_path.read_text(encoding="utf-8-sig")
-        pou = split_pou(source)
+        pous = source_pous(source, split_pou)
+        compile_caller(pous)
         dut_declarations = type_declarations(source, task_id)
         executable = find_codesys()
         profile = os.environ.get("CODESYS_PROFILE", DEFAULT_PROFILE)
@@ -300,11 +270,11 @@ def compile_one(source_path: Path, task_id: str, output_path: Path, timeout: int
                       "source_sha256":hashlib.sha256(source_path.read_bytes()).hexdigest(),
                       "posthoc_duts":[re.search(r"TYPE\s+([A-Za-z_][A-Za-z0-9_]*)", block, re.IGNORECASE).group(1)
                                        for block in dut_declarations],
-                      "build_adapter":"Standard library + task-defined DUTs; compile POU without task call binding",
+                      "build_adapter":"v2: Standard + task DUTs + reachable calls with bound input and IN_OUT storage",
                       "compiler":str(executable), "profile":profile,
                       "version":(ide_result.get("pou") or {}).get("device_version"),
                       "return_code":process.returncode, "elapsed_ms":round((time.perf_counter()-started)*1000),
-                      "pou":ide_result.get("pou"), "errors":ide_result.get("errors", []),
+                      "pou":ide_result.get("pou"), "referenced_pous":ide_result.get("referenced_pous", []), "errors":ide_result.get("errors", []),
                       "warnings":ide_result.get("warnings", []), "error":ide_result.get("error"),
                       "stdout":ide_stdout + process.stdout, "stderr":ide_stderr + process.stderr}
             output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -312,6 +282,9 @@ def compile_one(source_path: Path, task_id: str, output_path: Path, timeout: int
     except subprocess.TimeoutExpired as error:
         result = {"status":"TIMEOUT", "task_id":task_id, "elapsed_ms":timeout*1000,
                   "stdout":str(error.stdout or ""), "stderr":str(error.stderr or "")}
+    except SourceSyntaxError as error:
+        result = {"status":"FAIL", "task_id":task_id, "elapsed_ms":round((time.perf_counter()-started)*1000),
+                  "error":str(error), "stage":"source_parse"}
     except Exception as error:
         result = {"status":"UNAVAILABLE", "task_id":task_id, "elapsed_ms":round((time.perf_counter()-started)*1000),
                   "error":str(error)}
