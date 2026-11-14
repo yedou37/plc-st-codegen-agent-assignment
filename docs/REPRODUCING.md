@@ -146,6 +146,17 @@ try {
 
 每次运行会在被 Git 忽略的 `experiments/local_runs/codesys_runtime_suite/` 下保存工程、编译日志、实测输出、进度和汇总。可用 `--task P06 --task S10` 或 `--model gpt-6.1-sol` 限定重跑范围。`RUNTIME_PASS` 表示该输出的套件用例全部在 runtime 扫描中通过；`RUNTIME_FAIL` 表示至少一个 runtime 断言失败；正式离线编译失败的输出和测试工程编译失败的输出均未执行场景，必须分别记为未运行。2026-11-10 历史结果（按当时的向量和适配器）：20/60 个输出全场景通过，3/60 有 runtime 断言失败，37/60 未完成 runtime（12 个正式离线编译失败，25 个测试工程集成编译失败）。场景分母 224 = 112 × 2；实际执行场景的通过率 82/88、不同场景 ID 覆盖 56/112，不代表 224 格总通过率，也不能并入正式 120 格离线编译矩阵。P06 与 S10 的测试序列在复测前修正了计时边界和状态顺序，最终汇总记录使用复测结果。
 
+### CODESYS IDE 模拟器四条件复测
+
+模拟模式在 IDE 内执行 50 ms 扫描任务，可用实测变量值验证生成逻辑。需要安装上文的 CODESYS 版本和设备描述。模拟模式不需要启动或登录 Control Win 服务。
+
+```powershell
+py tools/audit_interfaces.py --linked-results experiments/linked_compile_review/diagnostics.jsonl --output experiments/local_runs/interface_audit.json
+py tools/run_ide_simulation_batch.py --interfaces experiments/local_runs/interface_audit.json --output-dir experiments/local_runs/ide_simulation
+```
+
+每个输出使用独立的临时工程。脚本核对归档源码 SHA-256，保存套件和驱动的 SHA-256，并记录完成场景的期望值与实测值。详见 [IDE 模拟复测记录](../experiments/ide_simulation_review/README.md)。如只测一份源码，可用 `tools/run_codesys_runtime_suite.py`，传入 `--source`、`--task-id`、`--suite` 和 `--simulate`。
+
 ## 6. 可选：运行新模型实验
 
 新模型请求会产生真实费用。正式项目历史费用不是新运行的报价；模型价格、token 数和失败重试都会影响成本。先使用小预算 pilot，确认设置正确后再由项目负责人决定是否做全量。
@@ -159,7 +170,7 @@ try {
   $env:DMXAPI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($keyPtr)
   py experiments/run_matrix.py `
     --pilot `
-    --max-cost-cny 0.25 `
+    --max-cost-cny 1.00 `
     --output experiments/local_runs/pilot.csv
 } finally {
   Remove-Item Env:DMXAPI_API_KEY -ErrorAction SilentlyContinue

@@ -23,12 +23,17 @@ def compile_st(source_path: Path, task_id: str, config_path: Path | None = None)
                          python=sys.executable, repo_root=str(root)) for x in command]
     start = time.perf_counter()
     try:
-        cp = subprocess.run(cmd, text=True, capture_output=True, timeout=180, check=False, cwd=str(root))
+        cp = subprocess.run(cmd, text=True, capture_output=True, encoding="utf-8", errors="replace", timeout=180, check=False, cwd=str(root))
         elapsed = round((time.perf_counter()-start)*1000)
         status = "PASS" if cp.returncode == 0 else "FAIL"
+        interface_status = "NOT_RUN"
+        interface_issues = []
         if any(Path(arg).name == "codesys_compile.py" for arg in cmd):
             try:
-                status = json.loads(cp.stdout)["status"]
+                diagnostics = json.loads(cp.stdout)
+                status = diagnostics["status"]
+                interface_status = diagnostics.get("interface_status", "NOT_RUN")
+                interface_issues = diagnostics.get("interface_issues", [])
                 if status not in {"PASS", "FAIL", "INVALID_SOURCE", "UNSUPPORTED_BINDING", "TIMEOUT", "UNAVAILABLE"}:
                     status = "UNAVAILABLE"
                 if status == "PASS" and cp.returncode != 0:
@@ -36,6 +41,7 @@ def compile_st(source_path: Path, task_id: str, config_path: Path | None = None)
             except (ValueError, KeyError, TypeError):
                 status = "UNAVAILABLE"
         return {"status":status, "return_code":cp.returncode,
+                "interface_status":interface_status,"interface_issues":interface_issues,
                 "stdout":cp.stdout[-12000:], "stderr":cp.stderr[-12000:], "elapsed_ms":elapsed,
                 "compiler":" ".join(cmd)}
     except subprocess.TimeoutExpired as exc:

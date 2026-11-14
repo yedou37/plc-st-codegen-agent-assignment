@@ -5,7 +5,8 @@ import argparse
 import json
 from pathlib import Path
 
-from codesys_linked import compile_batch
+from codesys_linked import ROOT, compile_batch
+from audit_interfaces import interface_issues
 
 
 def main() -> int:
@@ -18,6 +19,13 @@ def main() -> int:
         result, = compile_batch([(args.task_id, args.source)], timeout=150)
     except OSError as exc:
         result = {"status": "UNAVAILABLE", "error": str(exc)}
+    if result["status"] == "PASS":
+        tasks = json.loads((ROOT / "dataset/tasks.json").read_text(encoding="utf-8"))["tasks"]
+        task = next((row for row in tasks if row["id"] == args.task_id), None)
+        if task:
+            _, issues = interface_issues(args.source.read_text(encoding="utf-8-sig"), task)
+            result["interface_status"] = "MISMATCH" if issues else "MATCH"
+            result["interface_issues"] = issues
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, ensure_ascii=True))

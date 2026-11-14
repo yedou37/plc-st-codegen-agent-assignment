@@ -132,6 +132,8 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
     types = variable_types(pous)
     assertions: list[dict] = []
     stages: list[str] = []
+    seed_pointers: dict[str, str] = {}
+    timed_steps = False
     stage_no = 0
     for case_index, case in enumerate(cases, start=1):
         actions = case.get("steps", [])
@@ -143,12 +145,30 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
                 target = path[1:] if path.startswith("@") else "dut." + path
                 type_key = path[1:].split(".")[0].lower() if path.startswith("@") else path.split(".")[0].lower()
                 lines.append(f"{target} := {literal(value, types.get(type_key))};")
+            for path, value in action.get("seed", {}).items():
+                # Inject an otherwise impractical state without changing the candidate's declaration.
+                # Only use this access for explicitly named scalar test fixtures.
+                if not re.fullmatch(r"[A-Za-z_]\w*", path) or types.get(path.lower()) not in TYPE_MAP:
+                    raise ValueError(f"Invalid state seed: {path}")
+                dtype = TYPE_MAP[types[path.lower()]]
+                pointer = f"seed_{path}"
+                seed_pointers[pointer] = dtype
+                lines += [f"{pointer} := ADR(dut.{path});",
+                          f"{pointer}^ := {dtype}#{value};"]
             lines.append(suite.get("call", "dut();"))
             cycles = int(action.get("cycles", 1))
             if cycles < 1:
                 raise ValueError("cycles must be >= 1")
             lines.append("wait_counter := wait_counter + 1;")
-            lines.append(f"IF wait_counter >= {cycles} THEN")
+            after_ms = action.get("after_ms")
+            if after_ms is None:
+                lines.append(f"IF wait_counter >= {cycles} THEN")
+            else:
+                if not isinstance(after_ms, int) or after_ms < 1:
+                    raise ValueError("after_ms must be positive")
+                timed_steps = True
+                lines += ["IF wait_counter = 1 THEN step_started := TIME(); END_IF;",
+                          f"IF TIME() - step_started >= T#{after_ms}ms THEN"]
             lines.append("    wait_counter := 0;")
             for assertion_index, (path, expected) in enumerate(action.get("expect", {}).items(), start=1):
                 obs_name = f"obs_c{case_index}_s{step_index}_a{assertion_index}"
@@ -159,7 +179,7 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
                     "step_index": step_index,
                     "assertion_index": assertion_index,
                     "path": path,
-        "expression": target,
+                    "expression": target,
                     "expected": expected,
                     "observer": obs_name,
                     "type": target_type,
@@ -201,8 +221,12 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
         "    first_failed_case : DINT := 0;",
         f"    case_pass : ARRAY[1..{len(cases)}] OF BOOL := [{case_init}];",
     ]
+    if timed_steps:
+        declarations.append("    step_started : TIME;")
     for declaration in suite.get("declarations", []):
         declarations.append("    " + declaration.rstrip("; ") + ";")
+    for pointer, dtype in seed_pointers.items():
+        declarations.append(f"    {pointer} : POINTER TO {dtype};")
     for assertion in assertions:
         declarations.append(f"    {assertion['observer']} : {assertion['type']};")
     declarations += ["END_VAR", ""]
@@ -218,9 +242,16 @@ def build_driver(pou_name: str, suite: dict, pous: list[dict]) -> tuple[str, lis
     return driver, assertions
 
 
+def runtime_timeout_ms(suite: dict) -> int:
+    duration = sum(step.get("after_ms", int(step.get("cycles", 1)) * 50)
+                   for case in suite["cases"] for step in case["steps"])
+    return duration + 15000
+
+
 def runscript_source(pous: list[dict], dut_types: list[str], driver: str,
                      project_path: Path, result_path: Path, run_runtime: bool,
-                     timeout_ms: int, assertions: list[dict], suite: dict) -> str:
+                     timeout_ms: int, assertions: list[dict], suite: dict, simulate: bool = False,
+                     exit_on_failure: bool = True) -> str:
     values = {
         "SOURCE_POUS": pous,
         "DUT_TYPES": dut_types,
@@ -230,12 +261,13 @@ def runscript_source(pous: list[dict], dut_types: list[str], driver: str,
         "RESULT_PATH": str(result_path.resolve()),
         "PROGRESS_PATH": str(result_path.with_name("progress.json").resolve()),
         "RUN_RUNTIME": run_runtime,
+        "SIMULATE": simulate,
+        "EXIT_ON_FAILURE": exit_on_failure,
         "RUNTIME_TIMEOUT_MS": timeout_ms,
         "ASSERTIONS": assertions,
         "TEST_CASES": [{"id": case["id"], "scenario": case.get("scenario", "")}
                        for case in suite["cases"]],
     }
-    embedded = "\n".join("%s = %r" % (key, value) for key, value in values.items())
     body = r'''# IronPython script executed by the installed CODESYS profile.
 import io, json, os, re, traceback, time
 from scriptengine import *
@@ -246,7 +278,7 @@ online_app = None
 gateway = None
 def mark(stage, **details):
     with io.open(PROGRESS_PATH, "w", encoding="utf-8") as stream:
-        json.dump({"stage":stage, "timestamp":time.time(), "details":details}, stream)
+        stream.write(unicode(json.dumps({"stage":stage, "timestamp":time.time(), "details":details})))
 try:
     try:
         if hasattr(system, "script_prompt_handling"):
@@ -319,25 +351,33 @@ try:
         result["status"] = "COMPILE_PASS"
         if RUN_RUNTIME:
             try:
-                mark("gateway_setup")
-                drivers = list(online.gateway_drivers.find_with_name("TCP/IP"))
-                if not drivers: raise Exception("CODESYS TCP/IP gateway driver is unavailable")
-                gateway = online.gateways.add_new_gateway("Codex runtime suite", {"IP-Address":"localhost", "Port":1217}, drivers[0])
-                device = [obj for obj in project.find("Device", True) if obj.is_device][0]
-                target_address = gateway.find_address_by_ip("127.0.0.1", 11740)
-                device.set_gateway_and_address(gateway, target_address)
-                project.save()
-                runtime_user = os.environ.get("CODESYS_TEST_USER", "")
-                runtime_password = os.environ.get("CODESYS_TEST_PASSWORD", "")
-                if not runtime_user or not runtime_password:
-                    raise Exception("Set CODESYS_TEST_USER and CODESYS_TEST_PASSWORD in the process environment")
-                online.set_default_credentials(runtime_user, runtime_password)
-                online.auth_fallback_modes = getattr(CredentialSourceKind, "None")
-                mark("login")
-                online_app = online.create_online_application(app)
-                online_device = online_app.get_online_device()
-                online_device.set_credentials_for_initial_user(runtime_user, runtime_password, True, False)
-                online.set_specific_credentials(online_app, runtime_user, runtime_password)
+                if SIMULATE:
+                    mark("simulation_setup")
+                    device = [obj for obj in project.find("Device", True) if obj.is_device][0]
+                    device.set_simulation_mode(True)
+                    if not device.get_simulation_mode():
+                        raise Exception("Simulation did not activate")
+                    online_app = online.create_online_application(app)
+                else:
+                    mark("gateway_setup")
+                    drivers = list(online.gateway_drivers.find_with_name("TCP/IP"))
+                    if not drivers: raise Exception("CODESYS TCP/IP gateway driver is unavailable")
+                    gateway = online.gateways.add_new_gateway("Codex runtime suite", {"IP-Address":"localhost", "Port":1217}, drivers[0])
+                    device = [obj for obj in project.find("Device", True) if obj.is_device][0]
+                    target_address = gateway.find_address_by_ip("127.0.0.1", 11740)
+                    device.set_gateway_and_address(gateway, target_address)
+                    project.save()
+                    runtime_user = os.environ.get("CODESYS_TEST_USER", "")
+                    runtime_password = os.environ.get("CODESYS_TEST_PASSWORD", "")
+                    if not runtime_user or not runtime_password:
+                        raise Exception("Set CODESYS_TEST_USER and CODESYS_TEST_PASSWORD in the process environment")
+                    online.set_default_credentials(runtime_user, runtime_password)
+                    online.auth_fallback_modes = getattr(CredentialSourceKind, "None")
+                    mark("login")
+                    online_app = online.create_online_application(app)
+                    online_device = online_app.get_online_device()
+                    online_device.set_credentials_for_initial_user(runtime_user, runtime_password, True, False)
+                    online.set_specific_credentials(online_app, runtime_user, runtime_password)
                 online_app.login(OnlineChangeOption.Try, False)
                 if online_app.application_state != ApplicationState.run:
                     online_app.start()
@@ -357,8 +397,12 @@ try:
                 values_read = online_app.read_values(expressions)
                 value_map = dict(zip(expressions, values_read))
                 case_results = []
-                cursor = 4 + len(TEST_CASES)
-                for case_index, case in enumerate(TEST_CASES, start=1):
+                passed = int(str(value_map["RuntimeTest.passed"]).split("#")[-1])
+                failed = int(str(value_map["RuntimeTest.failed"]).split("#")[-1])
+                completed = passed + failed
+                if not 0 <= completed <= len(TEST_CASES) or (done and completed != len(TEST_CASES)):
+                    raise Exception("Inconsistent completion counters")
+                for case_index, case in enumerate(TEST_CASES[:completed], start=1):
                     case_pass = str(value_map.get("RuntimeTest.case_pass[%d]" % case_index, "FALSE")).strip().upper() in ("TRUE", "1")
                     observed = []
                     for assertion in [item for item in ASSERTIONS if item["case_index"] == case_index]:
@@ -368,8 +412,8 @@ try:
                                          "expected":assertion["expected"], "observed":actual})
                     case_results.append({"id":case["id"], "scenario":case.get("scenario", ""),
                                          "pass":case_pass, "assertions":observed})
-                passed = int(str(value_map.get("RuntimeTest.passed", "0")).split("#")[-1])
-                failed = int(str(value_map.get("RuntimeTest.failed", "0")).split("#")[-1])
+                if sum(case["pass"] for case in case_results) != passed:
+                    raise Exception("Inconsistent case status and pass counter")
                 result["runtime"] = {"state":"COMPLETED" if done else "TIMEOUT", "passed":passed,
                                       "failed":failed, "first_failed_case":value_map.get("RuntimeTest.first_failed_case"),
                                       "cases":case_results}
@@ -399,9 +443,9 @@ finally:
         try: project.save(); project.close()
         except Exception: pass
 with io.open(RESULT_PATH, "w", encoding="utf-8") as stream:
-    json.dump(result, stream, ensure_ascii=False, indent=2)
+    stream.write(unicode(json.dumps(result, ensure_ascii=True, indent=2)))
 print(json.dumps(result, ensure_ascii=False))
-if result["status"] not in ("COMPILE_PASS", "RUNTIME_PASS"):
+if EXIT_ON_FAILURE and result["status"] not in ("COMPILE_PASS", "RUNTIME_PASS"):
     system.exit(1)
 '''
     embedded = "\n".join("%s = %r" % (key, value) for key, value in values.items())
@@ -416,7 +460,9 @@ def main() -> int:
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--suite", type=Path, required=True)
     parser.add_argument("--profile", default=DEFAULT_PROFILE)
-    parser.add_argument("--run", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--run", action="store_true", help="Run on localhost Control Win")
+    mode.add_argument("--simulate", action="store_true", help="Run in the IDE simulator")
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
@@ -441,11 +487,10 @@ def main() -> int:
     (output_dir / "driver.st").write_text(driver, encoding="utf-8")
     project_path = output_dir / "RuntimeTest.project"
     result_path = output_dir / "result.json"
-    planned_cycles = sum(int(action.get("cycles", 1)) for case in suite["cases"] for action in case["steps"])
-    timeout_ms = max(10000, planned_cycles * 50 + 15000)
+    timeout_ms = runtime_timeout_ms(suite)
     script_path = output_dir / "codesys_test.py"
     script_path.write_text(runscript_source(source_pous, dut_types, driver, project_path, result_path,
-                                            args.run, timeout_ms, assertions, suite), encoding="utf-8")
+                                            args.run or args.simulate, timeout_ms, assertions, suite, args.simulate), encoding="utf-8")
     executable = find_codesys()
     command = '"%s" --profile="%s" --runscript="%s" --noUI' % (executable, args.profile, script_path)
     try:
@@ -468,11 +513,11 @@ def main() -> int:
                    "suite_sha256":sha256(args.suite.read_bytes()), "driver":str((output_dir / "driver.st").resolve()),
                    "driver_sha256":sha256(driver.encode("utf-8")),
                    "runner_sha256":sha256(Path(__file__).read_bytes()), "project":str(project_path),
-                   "run_requested":args.run, "codesys_return_code":process.returncode})
+                   "run_requested":args.run or args.simulate, "execution_target":"IDE simulation" if args.simulate else "Control Win" if args.run else "offline", "codesys_return_code":process.returncode})
     result_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({key:value for key,value in result.items() if key not in ("codesys_stdout", "codesys_stderr")},
                      ensure_ascii=False, indent=2))
-    return 0 if result["status"] == "COMPILE_PASS" and not args.run else (0 if result["status"] == "RUNTIME_PASS" else 1)
+    return 0 if result["status"] == "COMPILE_PASS" and not (args.run or args.simulate) else (0 if result["status"] == "RUNTIME_PASS" else 1)
 
 
 if __name__ == "__main__":

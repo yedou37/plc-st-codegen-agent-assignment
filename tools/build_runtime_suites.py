@@ -8,8 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "tests/structured_text/runtime_suites"
 
 
-def a(values=None, expect=None, cycles=1):
+def a(values=None, expect=None, cycles=1, after_ms=None):
     item = {"set": values or {}, "cycles": cycles}
+    if after_ms is not None:
+        item["after_ms"] = after_ms
     if expect:
         item["expect"] = expect
     return item
@@ -55,7 +57,7 @@ V["P04"] = {"task_id":"P04", "cases":[
 V["P05"] = {"task_id":"P05", "cases":[
     c("P05-T1", a({"Gap_Exceeded":True,"Weld_E_Stop_NC":True,"DebounceTime":"T#100ms"},
                    {"Weld_Soft_Start_Active":True,"Operator_Alert":False}, cycles=20)),
-    c("P05-T2", a({"Gap_Exceeded":True}, {"Weld_Soft_Start_Active":False,"Operator_Alert":True}, cycles=84)),
+    c("P05-T2", a({"Gap_Exceeded":True}, {"Weld_Soft_Start_Active":False,"Operator_Alert":True}, cycles=100)),
     c("P05-T3", a({"Weld_E_Stop_NC":False}, {"Operator_Alert":False}),
       a({"Weld_E_Stop_NC":True,"Gap_Exceeded":False}, {"Operator_Alert":False}))
 ]}
@@ -130,8 +132,8 @@ V["P12"] = {"task_id":"P12", "cases":[
 ]}
 V["P13"] = {"task_id":"P13", "cases":[
     c("P13-T1", a({"OCCUPANCY_DETECTED":True,"ENERGY_SAVING_MODE":False,"HVAC_MODE_SELECTOR":0},
-                   {"TEMP_SETPOINT_ADJUST":0,"SUPPLY_FAN_RUN":False}, cycles=20),
-      a({}, {"SUPPLY_FAN_RUN":True}, cycles=580)),
+                   {"TEMP_SETPOINT_ADJUST":0,"SUPPLY_FAN_RUN":False}, after_ms=29000),
+      a({}, {"SUPPLY_FAN_RUN":True}, after_ms=2000)),
     c("P13-T2", a({"OCCUPANCY_DETECTED":False,"ENERGY_SAVING_MODE":True,"HVAC_MODE_SELECTOR":0},
                    {"TEMP_SETPOINT_ADJUST":3}),
       a({"ENERGY_SAVING_MODE":False}, {"TEMP_SETPOINT_ADJUST":2})),
@@ -231,19 +233,20 @@ V["S01"] = {"task_id":"S01", "cases":[
       a({"LevelHigh":True,"LevelLow":False}, {"Pump2Run":True,"Pump1Run":False}))
 ]}
 V["S02"] = {"task_id":"S02", "cases":[
-    c("S02-T1", a({"EStopOK":True,"Start":True,"PartAtEntry":True,"PartAtExit":False,"Stop":False}, {"ConveyorForward":True,"ConveyorReverse":False})),
-    c("S02-T2", a({"Start":False,"Jam":True}, {"ConveyorForward":False,"ConveyorReverse":True}),
-      a({"Jam":False,"CycleTime":"T#50ms"}, {"ConveyorReverse":True}, cycles=20),
-      a({"Start":True}, {"ConveyorForward":True,"ConveyorReverse":False})),
-    c("S02-T3", a({"Start":False,"Jam":True}, {"ConveyorReverse":True}),
-      a({"Jam":False}, cycles=20), a({"Start":True}, {"ConveyorForward":True}),
-      a({"Start":False,"Jam":True}, {"ConveyorReverse":True}), a({"Jam":False}, cycles=20),
-      a({"Start":True}, {"FaultLatched":True,"RetryCount":2,"ConveyorForward":False,"ConveyorReverse":False})),
-    c("S02-T4", a({"FaultLatched":False,"EStopOK":True,"Start":False,"PartAtEntry":True}),
-      a({"Start":True}, {"ConveyorForward":True}), a({"Start":False,"Jam":True,"EStopOK":True}, {"ConveyorReverse":True}),
+    c("S02-T1", a({"EStopOK":True,"Start":True,"PartAtEntry":True,"PartAtExit":False,
+                    "Stop":False,"CycleTime":"T#50ms"}, {"ConveyorForward":True,"ConveyorReverse":False})),
+    c("S02-T2", a({"Jam":True}, {"ConveyorForward":False,"ConveyorReverse":True,"RetryCount":1}),
+      a({"Jam":False}, {"ConveyorReverse":True}, cycles=18),
+      a({}, {"ConveyorForward":True,"ConveyorReverse":False}, cycles=3)),
+    c("S02-T3", a({"Jam":True}, {"ConveyorReverse":True,"RetryCount":2}),
+      a({"Jam":False}, {"ConveyorForward":True}, cycles=21),
+      a({"Jam":True}, {"FaultLatched":True,"RetryCount":2,"ConveyorForward":False,"ConveyorReverse":False})),
+    c("S02-T4", a({"PartAtExit":True,"PartAtEntry":False,"Jam":False,"Start":False}),
+      a({"PartAtExit":False,"Start":True,"PartAtEntry":True}, {"ConveyorForward":True}),
+      a({"Jam":True}, {"ConveyorReverse":True}),
       a({"EStopOK":False}, {"ConveyorForward":False,"ConveyorReverse":False,"FaultLatched":True})),
-    c("S02-T5", a({"EStopOK":True,"PartAtExit":True}, {"RetryCount":0}),
-      a({"PartAtExit":False,"Start":False}), a({"Start":True}, {"FaultLatched":False}))
+    c("S02-T5", a({"EStopOK":True,"PartAtExit":True,"Jam":False,"Start":False}, {"RetryCount":0}),
+      a({"PartAtExit":False,"Start":True}, {"FaultLatched":False}))
 ]}
 V["S03"] = {"task_id":"S03", "cases":[
     c("S03-T1", a({"Level":25.0,"StartPermit":True,"HighHigh":False}, {"InletValve":True}),
@@ -298,14 +301,16 @@ V["S07"] = {"task_id":"S07", "cases":[
 V["S08"] = {"task_id":"S08", "cases":[
     c("S08-T1", a({"PartPresent":True,"Defect":False,"ConveyorRunning":True,"CycleTime":"T#50ms","Reset":False}),
       a({"Defect":True}, {"RejectSolenoid":True,"RejectCount":1})),
-    c("S08-T2", a({}, {"RejectCount":1}, cycles=2)),
+    c("S08-T2", a({}, {"RejectCount":1}, cycles=2),
+      a({}, {"RejectSolenoid":False,"RejectCount":1}, cycles=6)),
     c("S08-T3", a({"Defect":False,"PartPresent":False}, {"RejectCount":1}),
       a({"Defect":True}, {"RejectSolenoid":False,"RejectCount":1})),
     c("S08-T4", a({"Defect":False,"PartPresent":True,"ConveyorRunning":True}),
       a({"Defect":True}, {"RejectSolenoid":True,"RejectCount":2}),
       a({"Reset":True}, {"RejectCount":0,"RejectSolenoid":True}),
       a({"Reset":False}, {"RejectSolenoid":False}, cycles=6)),
-    c("S08-T5", a({"RejectCount":4294967295,"Defect":False}), a({"Defect":True}, {"RejectCount":4294967295}))
+    c("S08-T5", {"set":{"Defect":False}, "cycles":1, "seed":{"RejectCount":4294967295}},
+      a({"Defect":True}, {"RejectCount":4294967295}))
 ]}
 V["S09"] = {"task_id":"S09", "cases":[
     c("S09-T1", a({"SourceLevel":25.0,"DestinationLevel":50.0,"TransferEnable":True,"SourceLow":False,"DestinationHighHigh":False,"PumpFault":False}, {"TransferPump":True})),

@@ -47,7 +47,7 @@ class BudgetLedger:
             self.in_flight_cny = max(0.0, self.in_flight_cny - amount)
             # If the provider omits cost, charge the reserve locally so the next
             # request fails closed instead of treating an unknown charge as zero.
-            charged = self.reserve_cny if cost_cny is None else max(0.0, float(cost_cny))
+            charged = amount if cost_cny is None else max(0.0, float(cost_cny))
             self.spent_cny += charged
             return charged
 

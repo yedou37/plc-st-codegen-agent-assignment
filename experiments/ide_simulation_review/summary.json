@@ -1,0 +1,62 @@
+{
+  "scope": "Unmodified archived candidates with a linked offline pass and matching task interface",
+  "execution_target": "CODESYS V3.5 SP22 Patch 4 IDE simulation",
+  "compiled_archive_passes": 52,
+  "matched_interfaces": 51,
+  "by_condition": {
+    "Pi coding-agent single-shot + gpt-6.1-sol": {
+      "matrix_outputs": 30,
+      "matrix_scenarios": 112,
+      "eligible_outputs": 17,
+      "eligible_scenarios": 64,
+      "RUNTIME_PASS": 16,
+      "scenario_pass": 63,
+      "RUNTIME_FAIL": 1,
+      "scenario_fail": 1
+    },
+    "Self-developed harness + gpt-6.1-sol": {
+      "matrix_outputs": 30,
+      "matrix_scenarios": 112,
+      "eligible_outputs": 16,
+      "eligible_scenarios": 63,
+      "RUNTIME_PASS": 15,
+      "scenario_pass": 61,
+      "RUNTIME_FAIL": 1,
+      "scenario_fail": 2
+    },
+    "Pi coding-agent single-shot + deepseek-v4.1-flash-1017": {
+      "matrix_outputs": 30,
+      "matrix_scenarios": 112,
+      "eligible_outputs": 9,
+      "eligible_scenarios": 35,
+      "RUNTIME_PASS": 8,
+      "scenario_pass": 34,
+      "RUNTIME_FAIL": 1,
+      "scenario_fail": 1
+    },
+    "Self-developed harness + deepseek-v4.1-flash-1017": {
+      "matrix_outputs": 30,
+      "matrix_scenarios": 112,
+      "eligible_outputs": 9,
+      "eligible_scenarios": 37,
+      "RUNTIME_PASS": 9,
+      "scenario_pass": 37
+    }
+  },
+  "distinct_scenario_ids_executed": 72,
+  "distinct_dataset_scenario_ids": 112,
+  "distinct_tasks_executed": 19,
+  "model_requests": 0,
+  "targeted_manual_repairs": 3,
+  "manual_repair_full_suite_passes": 3,
+  "total": {
+    "matrix_outputs": 120,
+    "matrix_scenarios": 448,
+    "eligible_outputs": 51,
+    "eligible_scenarios": 199,
+    "RUNTIME_PASS": 48,
+    "scenario_pass": 195,
+    "RUNTIME_FAIL": 3,
+    "scenario_fail": 4
+  }
+}

@@ -20,23 +20,6 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def latest_matching(task_id: str, source_hash: str, suite_hash: str) -> dict | None:
-    base = ROOT / "experiments/local_runs/codesys_runtime_suite"
-    runner_hash = sha256((ROOT / "tools/run_codesys_runtime_suite.py").read_bytes())
-    for path in sorted(base.glob("*/result.json"), key=lambda p: p.stat().st_mtime, reverse=True):
-        try:
-            result = json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        if (result.get("task_id") == task_id and result.get("source_sha256") == source_hash
-                and result.get("suite_sha256") == suite_hash
-                and (result.get("runner_sha256") == runner_hash
-                     or result.get("status") in ("RUNTIME_PASS", "RUNTIME_FAIL"))
-                and result.get("run_requested") is True):
-            return result
-    return None
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", action="append", help="Limit to one or more task IDs")
@@ -87,13 +70,11 @@ def main() -> int:
             record.update({"status":"NOT_RUN_LINKED_BUILD_NOT_CONFIRMED", "scenario_executed":0,
                            "scenario_blocked":len(suite["cases"])})
         else:
-            existing = latest_matching(task_id, source_hash, suite_hash)
-            if existing:
-                result = existing
-                record["reused_result"] = result.get("project")
-                artifact = latest_result_path(base, task_id, source_hash, suite_hash)
-                if artifact:
-                    record["result_artifact"] = str(artifact.relative_to(ROOT))
+            result_path = latest_result_path(base, task_id, source_hash, suite_hash, completed_only=True)
+            if result_path:
+                result = json.loads(result_path.read_text(encoding="utf-8"))
+                record["reused_result"] = True
+                record["result_artifact"] = str(result_path.relative_to(ROOT))
             else:
                 command = [sys.executable, str(ROOT / "tools/run_codesys_runtime_suite.py"),
                            "--source", str(source), "--task-id", task_id,
@@ -153,7 +134,8 @@ def main() -> int:
     return 0
 
 
-def latest_result_path(base: Path, task_id: str, source_hash: str, suite_hash: str) -> Path | None:
+def latest_result_path(base: Path, task_id: str, source_hash: str, suite_hash: str,
+                       completed_only: bool = False) -> Path | None:
     runner_hash = sha256((ROOT / "tools/run_codesys_runtime_suite.py").read_bytes())
     for path in sorted(base.glob("*/result.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         try:
@@ -162,9 +144,10 @@ def latest_result_path(base: Path, task_id: str, source_hash: str, suite_hash: s
             continue
         if (item.get("task_id") == task_id and item.get("source_sha256") == source_hash
                 and item.get("suite_sha256") == suite_hash
-                and (item.get("runner_sha256") == runner_hash
-                     or item.get("status") in ("RUNTIME_PASS", "RUNTIME_FAIL"))
-                and item.get("run_requested") is True):
+                and item.get("runner_sha256") == runner_hash
+                and item.get("execution_target") == "Control Win"
+                and item.get("run_requested") is True
+                and (not completed_only or item.get("status") in ("RUNTIME_PASS", "RUNTIME_FAIL"))):
             return path
     return None
 

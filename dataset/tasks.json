@@ -1,6 +1,6 @@
 {
   "benchmark": "PLC-ST-Agent-Benchmark",
-  "version": "1.1",
+  "version": "1.2",
   "scan_semantics": "Each trace position pairs sampled inputs with the outputs and state produced by that scan. prev variables refer to the preceding scan. X denotes the next trace position.",
   "spec_profile": "Future-time LTL with typed comparisons and named timer/state predicates. Backend verification requires explicit predicate bindings and macro expansion.",
   "task_count": 30,
@@ -742,32 +742,32 @@
         "original_title": "Analog Batch Processing"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Ordinal pairing begins at each array's own lower bound. Invalid mode takes precedence over invalid range; count is contractually in bounds.",
+      "assumptions": "Ordinal pairing begins at each array's own lower bound. processed_i means that the zero-based ordinal i is below count. validMode_i means mode 0, 1 or 2. validRange_i means hiLIM_i > loLIM_i. valid_i combines processed_i, enable_i, validMode_i and validRange_i. Invalid mode takes precedence over invalid range. count is contractually in bounds.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
           "id": "P08-L1",
-          "formula": "G(!channels[i].enable -> X(retVal[i]=0 & outputValue[i]=prevOutputValue[i]))"
+          "formula": "G((processed_i & !enable_i) -> outputValue_i=prevOutputValue_i)"
         },
         {
           "id": "P08-L2",
-          "formula": "G(measuringMode[i] notin {0,1,2} -> X(retVal[i]=16#8001))"
+          "formula": "G((processed_i & enable_i & !validMode_i) -> retVal_i=16#8001 & outputValue_i=prevOutputValue_i)"
         },
         {
           "id": "P08-L3",
-          "formula": "G(hiLIM[i] <= loLIM[i] -> X(retVal[i]=16#8002))"
+          "formula": "G((processed_i & enable_i & validMode_i & !validRange_i) -> retVal_i=16#8002 & outputValue_i=prevOutputValue_i)"
         },
         {
           "id": "P08-L4",
-          "formula": "G(mode=0 & valid -> outputValue = loLIM + (raw-rawMin)*(hiLIM-loLIM)/(rawMax-rawMin))"
+          "formula": "G((valid_i & mode_i=0) -> outputValue_i = loLIM_i + (raw_i-rawMin_i)*(hiLIM_i-loLIM_i)/(rawMax_i-rawMin_i))"
         },
         {
           "id": "P08-L5",
-          "formula": "G(mode=1 & valid -> outputValue=raw/10.0)"
+          "formula": "G((valid_i & mode_i=1) -> outputValue_i=raw_i/10.0)"
         },
         {
           "id": "P08-L6",
-          "formula": "G(mode=2 & valid -> outputValue=raw/100.0)"
+          "formula": "G((valid_i & mode_i=2) -> outputValue_i=raw_i/100.0)"
         }
       ],
       "test_cases": [
@@ -1766,36 +1766,40 @@
         "original_title": "Recipe Management System"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Operation requests are rising-edge triggered and mutually exclusive; simultaneous requests are rejected as ambiguous (error status 16#80FF). ID 0 is reserved.",
+      "assumptions": "Operation requests are rising-edge triggered. oneRequest means exactly one operation edge and multipleRequests means at least two. A simultaneous request yields status 16#80FF and leaves the database unchanged. found, duplicate and full use the pre-scan database. ID 0 is reserved.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
           "id": "P17-L1",
-          "formula": "G(queryRecipe & found -> X(recipeQueryResult=matchedRecipe & !error))"
+          "formula": "G((queryEdge & oneRequest & found) -> recipeQueryResult=matchedRecipe & !error)"
         },
         {
           "id": "P17-L2",
-          "formula": "G(queryRecipe & !found -> X(error & status=16#8001))"
+          "formula": "G((queryEdge & oneRequest & !found) -> error & status=16#8001)"
         },
         {
           "id": "P17-L3",
-          "formula": "G(addRecipe & duplicate -> X(error & status=16#8002))"
+          "formula": "G((addEdge & oneRequest & duplicate) -> error & status=16#8002)"
         },
         {
           "id": "P17-L4",
-          "formula": "G(addRecipe & !duplicate & full -> X(error & status=16#8003))"
+          "formula": "G((addEdge & oneRequest & !duplicate & full) -> error & status=16#8003)"
         },
         {
           "id": "P17-L5",
-          "formula": "G(deleteRecipe & !found -> X(error & status=16#8004))"
+          "formula": "G((deleteEdge & oneRequest & !found) -> error & status=16#8004)"
         },
         {
           "id": "P17-L6",
-          "formula": "G(modifyRecipe & !found -> X(error & status=16#8005))"
+          "formula": "G((modifyEdge & oneRequest & !found) -> error & status=16#8005)"
         },
         {
           "id": "P17-L7",
-          "formula": "G(successfulAdd -> X(databaseUniqueIDs & storedAtLowestFreeIndex))"
+          "formula": "G(successfulAdd -> databaseUniqueIDs & storedAtLowestFreeIndex)"
+        },
+        {
+          "id": "P17-L8",
+          "formula": "G(multipleRequests -> error & status=16#80FF & databaseUnchanged)"
         }
       ],
       "test_cases": [
@@ -1870,28 +1874,28 @@
         "original_title": "FIFO First-In-First-Out Queue"
       },
       "adaptation_notes": "Requirement wording and interface are preserved from the supplied JSON. The stated assumption resolves scan timing or tie behavior for a deterministic benchmark; it does not change the core task.",
-      "assumptions": "Reset dominates edges; simultaneous enqueue/dequeue is forbidden by caller contract; edge histories persist across reset.",
+      "assumptions": "Reset dominates operation edges. The caller must not request both operations in the same scan. Edge histories persist across reset. prevCount, prevItem and oldestElement refer to the queue or item before this scan changes state.",
       "ltl_profile": "Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
       "specs": [
         {
           "id": "P18-L1",
-          "formula": "G(reset -> X(elementCount=0 & status=16#0000))"
+          "formula": "G(reset -> elementCount=0 & status=16#0000)"
         },
         {
           "id": "P18-L2",
-          "formula": "G(dequeueEdge & elementCount=0 & !reset -> X(status=16#8001 & item=prevItem))"
+          "formula": "G((dequeueEdge & prevCount=0 & !reset) -> status=16#8001 & item=prevItem & elementCount=prevCount)"
         },
         {
           "id": "P18-L3",
-          "formula": "G(enqueueEdge & elementCount=capacity & !reset -> X(status=16#8002 & item=prevItem))"
+          "formula": "G((enqueueEdge & prevCount=capacity & !reset) -> status=16#8002 & item=prevItem & elementCount=prevCount)"
         },
         {
           "id": "P18-L4",
-          "formula": "G(successfulDequeue -> X(item=oldestElement & elementCount=prevCount-1))"
+          "formula": "G((dequeueEdge & prevCount>0 & !reset) -> item=oldestElement & elementCount=prevCount-1 & status=16#0000)"
         },
         {
           "id": "P18-L5",
-          "formula": "G(successfulEnqueue -> X(elementCount=prevCount+1))"
+          "formula": "G((enqueueEdge & prevCount<capacity & !reset) -> elementCount=prevCount+1 & status=16#0000)"
         },
         {
           "id": "P18-L6",

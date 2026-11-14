@@ -9,6 +9,7 @@
 | `codesys_validation/` | 四个矩阵超时重试、P02 runtime 冒烟和自研 Agent 两模型 runtime 场景结果 | 矩阵重试对应原始结果行；runtime 单独报告 |
 | `posthoc_repair/` | 修正编译适配器后重编译原始 FAIL 的逐格证据 | 否，单独的事后复测 |
 | `functional_tests/`、`formal_verification/` | P02 的 STruC++ 测试和 CBMC 检查归档 | 加分验证，仅 P02 |
+| `ide_simulation_review/` | 51 份候选的接口和 IDE 模拟场景结果 | 补充复测，源码哈希可核对 |
 | `local_runs/` | 新的临时矩阵、源码、日志和复测结果 | 否，默认被 Git 忽略 |
 
 `experiments/*usage*.jsonl` 保留正式矩阵、pilot 和诊断调用的费用审计。早期 pilot 的性能 CSV 和状态摘要已从交付仓库移除；pilot 的 usage JSONL 保留，因为项目总费用统计包含这些请求。CODESYS 项目适配器探索时的三个临时 probe 日志已移除；最终 30 格 post-hoc 编译日志仍保留。DeepSeek 诊断数据保留，因为报告的 API 根因分析依赖这些受控对照。

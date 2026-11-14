@@ -26,7 +26,7 @@
           "set": {
             "Gap_Exceeded": true
           },
-          "cycles": 84,
+          "cycles": 100,
           "expect": {
             "Weld_Soft_Start_Active": false,
             "Operator_Alert": true

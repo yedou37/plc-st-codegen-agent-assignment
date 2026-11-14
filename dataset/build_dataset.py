@@ -64,13 +64,13 @@ PUBLIC = {
 ["Manual, start held with pumps 1 through 4 selected: those four run; pump 5 stops.", "Automatic priorities [1,5,3,4,2], start: pumps 2,3,4 run (tie breaks by lower index).", "stop TRUE: all five commands FALSE in either mode."],
 "Start is a level-sensitive run request in both modes. Auto mode selects exactly three highest-ranked pumps; rank_i is one-based and ties break by lower array index. AND_i ranges over 1..5; countRunningPumps counts true RunComd fields. Stop has priority."),
 "P08": ("medium", [
-"G(!channels[i].enable -> X(retVal[i]=0 & outputValue[i]=prevOutputValue[i]))",
-"G(measuringMode[i] notin {0,1,2} -> X(retVal[i]=16#8001))",
-"G(hiLIM[i] <= loLIM[i] -> X(retVal[i]=16#8002))",
-"G(mode=0 & valid -> outputValue = loLIM + (raw-rawMin)*(hiLIM-loLIM)/(rawMax-rawMin))",
-"G(mode=1 & valid -> outputValue=raw/10.0)", "G(mode=2 & valid -> outputValue=raw/100.0)"],
+"G((processed_i & !enable_i) -> outputValue_i=prevOutputValue_i)",
+"G((processed_i & enable_i & !validMode_i) -> retVal_i=16#8001 & outputValue_i=prevOutputValue_i)",
+"G((processed_i & enable_i & validMode_i & !validRange_i) -> retVal_i=16#8002 & outputValue_i=prevOutputValue_i)",
+"G((valid_i & mode_i=0) -> outputValue_i = loLIM_i + (raw_i-rawMin_i)*(hiLIM_i-loLIM_i)/(rawMax_i-rawMin_i))",
+"G((valid_i & mode_i=1) -> outputValue_i=raw_i/10.0)", "G((valid_i & mode_i=2) -> outputValue_i=raw_i/100.0)"],
 ["Unipolar raw 0 and 27648 map to loLIM and hiLIM.", "Bipolar raw -27648 maps to loLIM and +27648 maps to hiLIM.", "Disabled channel leaves output unchanged; invalid mode returns 16#8001."],
-"Ordinal pairing begins at each array's own lower bound. Invalid mode takes precedence over invalid range; count is contractually in bounds."),
+"Ordinal pairing begins at each array's own lower bound. processed_i means that the zero-based ordinal i is below count. validMode_i means mode 0, 1 or 2. validRange_i means hiLIM_i > loLIM_i. valid_i combines processed_i, enable_i, validMode_i and validRange_i. Invalid mode takes precedence over invalid range. count is contractually in bounds."),
 "P09": ("medium", [
 "G(reset -> (occupancy=0 & average=0.0 & !windowSizeReached))",
 "G(windowSize notin 1..100 -> error & status=16#8200)",
@@ -141,24 +141,25 @@ PUBLIC = {
 ["Start at station1 with sequence [3,2,5]: conveyor moves toward 3, stops at sensor3.", "At station3, no completion: remain stopped; after station3Complete, route to station2.", "At final station5 sensor: stop; no further sequence read."],
 "Sequence entries 2..4 are valid and the final entry is 5. Left means decreasing station number and right means increasing. Invalid lengths inhibit motion. Travel is assumed to receive target sensor feedback unless the sequence is aborted."),
 "P17": ("hard", [
-"G(queryRecipe & found -> X(recipeQueryResult=matchedRecipe & !error))",
-"G(queryRecipe & !found -> X(error & status=16#8001))",
-"G(addRecipe & duplicate -> X(error & status=16#8002))",
-"G(addRecipe & !duplicate & full -> X(error & status=16#8003))",
-"G(deleteRecipe & !found -> X(error & status=16#8004))",
-"G(modifyRecipe & !found -> X(error & status=16#8005))",
-"G(successfulAdd -> X(databaseUniqueIDs & storedAtLowestFreeIndex))"],
+"G((queryEdge & oneRequest & found) -> recipeQueryResult=matchedRecipe & !error)",
+"G((queryEdge & oneRequest & !found) -> error & status=16#8001)",
+"G((addEdge & oneRequest & duplicate) -> error & status=16#8002)",
+"G((addEdge & oneRequest & !duplicate & full) -> error & status=16#8003)",
+"G((deleteEdge & oneRequest & !found) -> error & status=16#8004)",
+"G((modifyEdge & oneRequest & !found) -> error & status=16#8005)",
+"G(successfulAdd -> databaseUniqueIDs & storedAtLowestFreeIndex)",
+"G(multipleRequests -> error & status=16#80FF & databaseUnchanged)"],
 ["Query existing ID returns the exact record; query missing ID yields 16#8001.", "Add duplicate returns 16#8002; full database returns 16#8003.", "Delete existing ID clears its slot; modify missing ID returns 16#8005."],
-"Operation requests are rising-edge triggered and mutually exclusive; simultaneous requests are rejected as ambiguous (error status 16#80FF). ID 0 is reserved."),
+"Operation requests are rising-edge triggered. oneRequest means exactly one operation edge and multipleRequests means at least two. A simultaneous request yields status 16#80FF and leaves the database unchanged. found, duplicate and full use the pre-scan database. ID 0 is reserved."),
 "P18": ("hard", [
-"G(reset -> X(elementCount=0 & status=16#0000))",
-"G(dequeueEdge & elementCount=0 & !reset -> X(status=16#8001 & item=prevItem))",
-"G(enqueueEdge & elementCount=capacity & !reset -> X(status=16#8002 & item=prevItem))",
-"G(successfulDequeue -> X(item=oldestElement & elementCount=prevCount-1))",
-"G(successfulEnqueue -> X(elementCount=prevCount+1))",
+"G(reset -> elementCount=0 & status=16#0000)",
+"G((dequeueEdge & prevCount=0 & !reset) -> status=16#8001 & item=prevItem & elementCount=prevCount)",
+"G((enqueueEdge & prevCount=capacity & !reset) -> status=16#8002 & item=prevItem & elementCount=prevCount)",
+"G((dequeueEdge & prevCount>0 & !reset) -> item=oldestElement & elementCount=prevCount-1 & status=16#0000)",
+"G((enqueueEdge & prevCount<capacity & !reset) -> elementCount=prevCount+1 & status=16#0000)",
 "G(elementCount in 0..capacity)"],
 ["Empty buffer + dequeue↑: status 16#8001, item unchanged.", "Enqueue values 11,22 then dequeue↑: item=11; count=1.", "Fill capacity then enqueue↑: status 16#8002; buffer and item unchanged."],
-"Reset dominates edges; simultaneous enqueue/dequeue is forbidden by caller contract; edge histories persist across reset."),
+"Reset dominates operation edges. The caller must not request both operations in the same scan. Edge histories persist across reset. prevCount, prevItem and oldestElement refer to the queue or item before this scan changes state."),
 "P19": ("hard", [
 "G(!EmergencyStop -> allMotionOutputsOff)",
 "G((ManualMode & EmergencyStop) -> manualCommandsMatchPermittedButtons)",
@@ -234,7 +235,7 @@ def main():
             "ltl_profile":"Scan-level future-time LTL; timer completion and state predicates are explicitly named atoms. See docs/DATASET_SPEC.md.",
             "specs":[{"id":f"{item['id']}-L{i+1}","formula":s} for i,s in enumerate(item["specs"])],
             "test_cases":[{"id":f"{item['id']}-T{i+1}","scenario":t} for i,t in enumerate(item["tests"])]})
-    result = {"benchmark":"PLC-ST-Agent-Benchmark","version":"1.1","scan_semantics":"Each trace position pairs sampled inputs with the outputs and state produced by that scan. prev variables refer to the preceding scan. X denotes the next trace position.","spec_profile":"Future-time LTL with typed comparisons and named timer/state predicates. Backend verification requires explicit predicate bindings and macro expansion.","task_count":len(tasks),"public_count":counter-1,"self_built_count":len(SYNTHETIC),"tasks":tasks}
+    result = {"benchmark":"PLC-ST-Agent-Benchmark","version":"1.2","scan_semantics":"Each trace position pairs sampled inputs with the outputs and state produced by that scan. prev variables refer to the preceding scan. X denotes the next trace position.","spec_profile":"Future-time LTL with typed comparisons and named timer/state predicates. Backend verification requires explicit predicate bindings and macro expansion.","task_count":len(tasks),"public_count":counter-1,"self_built_count":len(SYNTHETIC),"tasks":tasks}
     OUT.write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     with (HERE/"question_bank_original.json").open("w",encoding="utf-8") as f: json.dump(bank,f,ensure_ascii=False,indent=2); f.write("\n")
     print(f"wrote {OUT}: {len(tasks)} tasks ({counter-1} public, {len(SYNTHETIC)} self-built)")

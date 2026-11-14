@@ -8,6 +8,8 @@ The four experimental conditions produced 120 archived outputs. Review found tha
 
 Additional validation includes 20/20 automated STruC++ tests across four P02 outputs and 918 CBMC properties checked on their translated code, with no failures. On CODESYS Control Win V3 x64 version 3.5.22.40, 88 of 224 planned model-scenario executions were run for the custom agent with GPT and DeepSeek: 82 passed and 6 failed, covering 56 of 112 distinct scenario IDs. The other 136 model-scenario executions did not reach runtime. PLCVerif was not run. Conclusions are limited to this dataset, these model versions, and the prompt configuration used.
 
+The CODESYS IDE simulator subsequently executed all 199 scenarios for 51 interface-matched archived outputs. It recorded 195 passes and four failures across 19 tasks. Three targeted manual repairs passed nine further scenarios. The archived and manually revised sources have separate records.
+
 ## 1 Scope and Completion Status
 
 The assignment requires all public problems and at least 10 self-developed problems, formal specifications and test cases for every problem, a custom ST-generation agent, a comparison with an existing agent using at least two models, and a report of compile, test, verification, and resource results.
@@ -21,7 +23,7 @@ This project delivers the dataset, agent harness, CODESYS offline-compile adapte
 | Custom PLC ST agent harness | `src/agent_harness.py`, model adapters, and CODESYS compiler adapter | Connected to CODESYS; bounded compile-repair loop implemented |
 | Existing agent and two models | Pi coding-agent 1.5.0; DMXAPI models `gpt-6.1-sol` and `deepseek-v4.1-flash-1017` | All four conditions run on all 30 tasks |
 | Four-condition experiment matrix | `experiments/results.csv` | 120/120 cells complete; all 30 tasks paired across conditions |
-| Compile, runtime and formal checks | Linked recheck and archived tests | 52/120 linked builds passed. Historical runtime: 82/88 executed. P02: 20/20 automated tests and 918 CBMC checks |
+| Compile, runtime and formal checks | Linked CODESYS builds, IDE simulation and P02 formal checks | 52/120 linked builds passed. IDE simulation passed 195/199 executed scenarios. P02 passed 918 CBMC checks |
 | Cost and resource records | `experiments/*usage*.jsonl` and `results_summary.json` | 234 proxy records (233 HTTP 200 responses and one budget rejection); total recorded usage CNY 6.099742 |
 
 ## 2 Experimental Environment
@@ -55,11 +57,11 @@ The 10 self-developed problems are original synthetic tasks; they do not combine
 | Original synthetic tasks | 4 | 4 | 2 | 10 |
 | Total | 10 | 12 | 8 | 30 |
 
-Difficulty labels reflect control-state and logic complexity rather than code length. Easy tasks focus on one state, interlocks, hysteresis, or timing. Medium tasks add multi-step sequences, mode changes, fault recovery, or numeric boundaries. Hard tasks involve queues, dynamic selection, staged automation, lead-lag equipment, or invariants spanning several states. The 30 tasks contain 279 typed and directed interface fields, 206 LTL specifications, and 112 test scenarios. Each task has at least three specifications and three test scenarios. After an interface audit, all 10 synthetic tasks had machine-readable I/O definitions. The canonical synthetic-task source is `dataset/synthetic_tasks.json`.
+Difficulty labels reflect control-state and logic complexity rather than code length. Easy tasks focus on one state, interlocks, hysteresis, or timing. Medium tasks add multi-step sequences, mode changes, fault recovery, or numeric boundaries. Hard tasks involve queues, dynamic selection, staged automation, lead-lag equipment, or invariants spanning several states. The 30 tasks contain 279 typed and directed interface fields, 207 LTL specifications, and 112 test scenarios. Each task has at least three specifications and three test scenarios. After an interface audit, all 10 synthetic tasks had machine-readable I/O definitions. The canonical synthetic-task source is `dataset/synthetic_tasks.json`.
 
 ### 3.2 Scan-level LTL semantics
 
-Each trace position pairs the sampled inputs with the state and outputs produced by that scan. A `prev` value comes from the preceding scan. `G p` means that `p` holds at every position, `X p` refers to the next position, and `F p` refers to a future position. Dataset v1.1 compares P04 and P12 accumulators with their preceding values and preserves them on stopped scans. Mode and stage guards keep automatic constraints out of manual control. Emergency-stop and reset priority are explicit in the revised properties. The archived outputs were generated before these edits.
+Each trace position pairs the sampled inputs with the state and outputs produced by that scan. A `prev` value comes from the preceding scan. `G p` means that `p` holds at every position, `X p` refers to the next position, and `F p` refers to a future position. Dataset v1.1 compares P04 and P12 accumulators with their preceding values and preserves them on stopped scans. Mode and stage guards keep automatic constraints out of manual control. Emergency-stop and reset priority are explicit in the revised properties. Version 1.2 aligns analog-channel guards with validation priority, recipe requests with invocation edges, and FIFO state updates with same-scan outputs. The archived outputs predate these edits.
 
 This representation focuses on causality and safety at scan boundaries. Atoms such as `timerDone` must be interpreted by a target runtime model. Named macros such as `AtMostNOf(...)` and `validIPv4` must be expanded into syntax supported by the selected verifier adapter. PLCVerif was not available on the host, so the LTL specifications were not parsed or checked by a formal tool. Reviewable specification text is not evidence that a model checker proved the property.
 
@@ -94,7 +96,7 @@ Model adapter ------> Pi single-shot baseline (no tools)
                        Output, tokens, cost, and diagnostic CSV
 ```
 
-The custom harness supplies the task statement, interface and assumptions. The current adapter imports the complete `PROGRAM`, `FUNCTION_BLOCK`, and `FUNCTION` units and schedules a driver that calls each one. It provides concrete variables for reference arguments and arrays. CODESYS must produce a nonempty offline boot application and a compiled signature for each candidate and the driver. The harness permits up to two repair attempts after source or compile errors.
+The custom harness supplies the task statement, interface and assumptions. The current adapter imports the complete `PROGRAM`, `FUNCTION_BLOCK`, and `FUNCTION` units and schedules a driver that calls each one. It provides concrete variables for reference arguments and arrays. CODESYS must produce a nonempty offline boot application and a compiled signature for each candidate and the driver. The harness permits up to two repair attempts after source, compile or interface errors. Current runs share a configurable 4096-token output limit across strategies and record provider-reported truncation before calling the compiler.
 
 The static precheck only looks for a program-unit declaration, closing markers, `VAR/END_VAR`, and a small set of control-structure terminators. It does not parse IEC syntax, check types, or compile for the target platform. Actual compilation is performed by the adapter in `src/compiler.py`. Static checks are not treated as compile or runtime evidence; actual runtime results are reported separately.
 
@@ -142,7 +144,7 @@ The historical matrix recorded 77 first-build passes, 39 failures and four timeo
 
 All 120 source hashes were checked. The adapter rejected 55 files without a matching POU end marker and 10 with an unclosed block comment. The remaining 55 reached CODESYS and 52 passed. Three produced actual compiler diagnostics. A valid function block generated a boot application and a version with an undeclared identifier failed. Of the 90 historical passes, 44 did not pass under the corrected method. Six historical failures passed. The complete record, including the scheduled calls and candidate signatures, is in `experiments/linked_compile_review/`.
 
-### 6.3 Cost, resource use, and unexecuted verification
+### 6.3 Cost and validation coverage
 
 **Costs and model usage**
 
@@ -173,7 +175,21 @@ The formal matrix used CNY 5.880938. Total recorded usage, including pilot runs,
 
 Cost and token figures come from `experiments/*usage*.jsonl`. The proxy records do not contain run IDs, and some row-level CSV costs may be missing or delayed. We therefore do not use the CSV to compare per-task costs. The proxy does not save prompts or response bodies; the original empty DeepSeek responses cannot be reviewed individually. The root-cause explanation is based on HTTP status, completion token counts, and controlled comparisons of the thinking-mode parameter.
 
-### 6.4 Automated testing and bounded formal checks
+### 6.4 CODESYS IDE simulation
+
+The IDE loaded and ran a separate test project for each eligible source. An interface audit identified one P18 output that replaced VARIANT with a concrete element type and open array. The remaining 51 outputs completed cyclic execution and returned asserted output values. The test suite includes sequential scan cases, timed assertions for P13, and a seeded counter for the S08 saturation edge.
+
+| Strategy and model | Outputs passing every scenario / 30 | Passed / executed / planned scenarios |
+|---|---:|---:|
+| Pi with GPT | 16 | 63 / 64 / 112 |
+| Pi with DeepSeek | 8 | 34 / 35 / 112 |
+| Custom agent with GPT | 15 | 61 / 63 / 112 |
+| Custom agent with DeepSeek | 9 | 37 / 37 / 112 |
+| Total | 48 of 120 | 195 / 199 / 448 |
+
+A total of 19 tasks and 72 of 112 distinct scenario IDs reached simulation. The failures affected P05 and two P14 outputs. P05 reentered its startup inhibition because the timer completion was not latched. P14 used one-based byte indexing and produced wrong integer values for valid input, and one candidate accepted an invalid address. After targeted manual corrections, the three revised sources passed nine out of nine scenarios. The original and revised sources, expected values, observed values, and hashes are archived in the IDE simulation review.
+
+### 6.5 Automated testing and bounded formal checks
 
 To add automated testing and formal-check evidence, we selected P02 because it includes boundary arithmetic and state updates. The same scan-by-scan assertions were run against the four formal outputs: Pi and custom harness with GPT and DeepSeek. Each output ran five tests: the three P02 dataset scenarios and boundary cases for all 32 bits rising and all 32 bits falling. STruC++ 0.7.0 compiled and ran the tests, with 20/20 passes in total. The Pi DeepSeek output used an equivalent expression normalization to support STruC++ 0.7.0. The original ST was unchanged; the transformation and source hashes are recorded in the result JSON.
 
@@ -181,20 +197,15 @@ CBMC 5.95.1 then checked the STruC++-generated code for the four P02 outputs. Th
 
 ## 7 Validity Limits and Further Work
 
-The linked recheck measures whether the archived final sources can build in an offline CODESYS application. It does not establish functional behavior, exact interface conformance or PLC runtime correctness. GPT produced 18/30 passes with the Pi strategy and 16/30 with the custom strategy. Both DeepSeek strategies produced 9/30. These counts describe this experiment and do not isolate the effect of the frameworks. The previous 88/224 runtime executions used their original candidate selection and test vectors. The revised vectors have yet to be run on Control Win. The 918 CBMC checks apply to P02 translations, and the complete LTL set has not been checked by PLCVerif.
+The linked recheck measures offline code generation. The subsequent interface audit and IDE simulation measure different aspects of the candidate ST. The simulator executes CODESYS scan logic without hardware I/O or a Control Win service login. The earlier Control Win results used their original candidate selection and vectors.
 
-Further work can proceed in this order:
+GPT produced 18/30 offline passes with Pi and 16/30 with the custom agent. Both DeepSeek strategies produced 9/30. The different repair budgets limit comparisons between frameworks. The custom GPT and DeepSeek outputs passed their complete IDE scenario sets on 15/30 and 9/30 tasks respectively. The 195/199 scenario passes describe the executed subset. There were 249 planned combinations with no IDE execution.
 
-1. Repair the generated-code defects observed in P09, P14, and P16, then evaluate those repairs separately from the original matrix. Analyze the 25 outputs that failed to compile in the integrated runtime test project; fix runner or compatibility issues and rerun the blocked scenarios.
-2. Install PLCVerif and configure an adapter. Expand named LTL macros into the tool's supported syntax, then check the state and timer semantics before verifying tasks.
-3. Extend STruC++ functional tests to more tasks and add more state orderings, timing boundaries, and invalid-input cases.
-4. Assess full-dataset correctness after scenario coverage is complete and blockers are resolved. Use more task types and model versions before drawing broader conclusions.
-
-The original run capped model output at 768 tokens per request. The prevalence of incomplete archived outputs warrants measuring truncation explicitly in any future run. Total recorded project usage remains CNY 6.099742 out of CNY 18. The uniform compile recheck reused the archived sources and incurred no API costs.
+The archived requests used a 768-token cap. All 65 incomplete final outputs belonged to cells with recorded completion counts at integer multiples of that cap, across one or more attempts. Production of complete code at the new limit remains unmeasured until a fresh matrix is collected with authorized model access. The compiler, interface audit, simulator, and manual repairs used the archived outputs with no additional API requests. Total recorded API spend remains CNY 6.099742. Further formal verification requires binding the LTL predicates to an explicit model and running a verifier. The 918 bounded CBMC checks apply to the P02 translations.
 
 ## Appendix A Project Artifacts
 
-The 30 tasks, 279 interface fields, 206 formal specifications, and 112 test scenarios are in `dataset/tasks.json`. The experimental protocol is in `experiments/protocol.md`. The original 120-cell matrix and summary are in `experiments/results.csv` and `experiments/results_summary.json`. Current per-candidate compile evidence is in `experiments/linked_compile_review/`, and reusable DUT definitions are in `st/support_types/`. CODESYS timeout retries, the P02 runtime smoke test, and the custom-agent runtime scenario results are in `experiments/codesys_validation/`. Per-output STruC++ and CBMC results, source hashes, test templates, transformation evidence, and logs are in `experiments/functional_tests/`, `experiments/formal_verification/`, and `tests/structured_text/`. Generated ST files are in `st/runs/`. Usage records contain model, token, cost, latency, HTTP status, and timestamp, but no API key, prompt, or response body.
+The 30 tasks, 279 interface fields, 207 formal specifications, and 112 test scenarios are in `dataset/tasks.json`. The experimental protocol is in `experiments/protocol.md`. The original 120-cell matrix and summary are in `experiments/results.csv` and `experiments/results_summary.json`. Current per-candidate compile evidence is in `experiments/linked_compile_review/`, and reusable DUT definitions are in `st/support_types/`. CODESYS timeout retries, the P02 runtime smoke test, and the historical custom-agent runtime scenario results are in `experiments/codesys_validation/`. Per-output STruC++ and CBMC results, source hashes, test templates, transformation evidence, and logs are in `experiments/functional_tests/`, `experiments/formal_verification/`, and `tests/structured_text/`. The IDE simulation and manual repair evidence is in the IDE simulation review under experiments. Generated ST files are in `st/runs/`. Usage records contain model, token, cost, latency, HTTP status, and timestamp, but no API key, prompt, or response body.
 
 ## References
 

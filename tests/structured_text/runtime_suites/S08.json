@@ -36,6 +36,14 @@
           "expect": {
             "RejectCount": 1
           }
+        },
+        {
+          "set": {},
+          "cycles": 6,
+          "expect": {
+            "RejectSolenoid": false,
+            "RejectCount": 1
+          }
         }
       ],
       "scenario": "Defect remains high over scans: count does not increment again."
@@ -114,10 +122,12 @@
       "steps": [
         {
           "set": {
-            "RejectCount": 4294967295,
             "Defect": false
           },
-          "cycles": 1
+          "cycles": 1,
+          "seed": {
+            "RejectCount": 4294967295
+          }
         },
         {
           "set": {

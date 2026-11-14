@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
@@ -8,12 +9,15 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 sys.path.insert(0,str(ROOT/"tools"))
+sys.path.insert(0,str(ROOT/"src"))
 
 from src.static_check import check_source, extract_st
 from src.adapters import chat_completion
 from dmxapi_metered_proxy import BudgetLedger, _collect_usage
 from run_st_tests import normalize_strucpp_source
 from codesys_linked import prepare, SourceError
+from audit_interfaces import interface_issues
+from src.agent_harness import AdapterError, run_task
 
 class DatasetTests(unittest.TestCase):
     @classmethod
@@ -119,6 +123,54 @@ class SourceAdapterTests(unittest.TestCase):
         self.assertEqual(result["content"],"")
         self.assertEqual(result["response_meta"],{
             "finish_reason":"length","reasoning_chars":17,"reasoning_tokens":8})
+
+    def test_declared_interface_checks_type_and_direction(self):
+        source = ("FUNCTION_BLOCK Candidate\nVAR_INPUT\n values : DINT;\n"
+                  "END_VAR\nVAR_OUTPUT\n active : BOOL;\nEND_VAR\n"
+                  "active := values > 0;\nEND_FUNCTION_BLOCK\n")
+        task = {"id": "P18", "interface": [
+            {"direction": "Input/Output", "name": "values", "type": "VARIANT"},
+            {"direction": "Output", "name": "active", "type": "BOOL"},
+        ]}
+        name, issues = interface_issues(source, task)
+        self.assertEqual(name, "Candidate")
+        self.assertEqual(issues, ["values: expected VAR_IN_OUT VARIANT, got VAR_INPUT DINT"])
+
+    def test_truncated_response_skips_compiler_and_retries(self):
+        truncated = {"content": "PROGRAM P\nVAR", "response_meta": {"finish_reason": "length"}}
+        recovered = {"content": "PROGRAM P\nVAR\nEND_VAR\nEND_PROGRAM",
+                     "response_meta": {"finish_reason": "stop"}}
+        with tempfile.TemporaryDirectory() as folder, \
+             patch("src.agent_harness.chat_completion", side_effect=[truncated, recovered]), \
+             patch("src.agent_harness.compile_st", return_value={"status": "PASS"}) as compiler:
+            result = run_task({"id": "Probe"}, {}, Path(folder), Path(folder) / "config.json", 1)
+            self.assertTrue(Path(result["output_path"]).is_file())
+        self.assertEqual(result["first_compile"], "NOT_RUN_TRUNCATED")
+        self.assertEqual(result["status"], "COMPILE_PASS")
+        self.assertEqual(compiler.call_count, 1)
+        self.assertEqual(compiler.call_args.args[0].name, "Probe_attempt2.st")
+
+    def test_interface_mismatch_repairs_and_keeps_last_written_artifact_on_api_error(self):
+        code = {"content": "PROGRAM P\nVAR\nEND_VAR\nEND_PROGRAM", "response_meta": {}}
+        diagnostics = {"status": "PASS", "interface_status": "MISMATCH",
+                       "interface_issues": ["Missing VAR_OUTPUT active: BOOL"]}
+        with tempfile.TemporaryDirectory() as folder, \
+             patch("src.agent_harness.chat_completion", side_effect=[code, AdapterError("mock")]) as api, \
+             patch("src.agent_harness.compile_st", return_value=diagnostics):
+            result = run_task({"id": "Probe"}, {}, Path(folder), Path(folder) / "config.json", 1)
+            self.assertEqual(Path(result["output_path"]).name, "Probe_attempt1.st")
+            self.assertTrue(Path(result["output_path"]).is_file())
+            self.assertIn(diagnostics["interface_issues"][0], api.call_args.args[0][-1]["content"])
+        self.assertEqual(result["status"], "MODEL_ERROR")
+        self.assertEqual(result["interface_status"], "MISMATCH")
+
+    def test_unknown_cost_uses_the_reserve_for_the_selected_model(self):
+        ledger = BudgetLedger(0.30, 0.05, 4096, {"gpt": 0.20, "deepseek": 0.02})
+        self.assertTrue(ledger.reserve("gpt"))
+        self.assertAlmostEqual(ledger.settle(None), 0.20)
+        self.assertFalse(ledger.reserve("gpt"))
+        self.assertTrue(ledger.reserve("deepseek"))
+        self.assertAlmostEqual(ledger.settle(None), 0.02)
 
     def test_budget_ledger_reserves_each_request_and_fails_closed(self):
         ledger=BudgetLedger(0.20,0.15,768)

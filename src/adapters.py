@@ -38,8 +38,7 @@ def chat_completion(messages: list[dict], model_cfg: dict) -> dict:
         with urllib.request.urlopen(req, timeout=int(model_cfg.get("timeout_seconds", 180))) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")[-3000:]
-        raise AdapterError(f"Model API HTTP {exc.code}: {detail}") from exc
+        raise AdapterError(f"Model API HTTP {exc.code}") from exc
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise AdapterError(f"Model API request failed: {exc}") from exc
     try:
@@ -50,8 +49,8 @@ def chat_completion(messages: list[dict], model_cfg: dict) -> dict:
         raise AdapterError("Unexpected chat-completions response shape") from exc
     if isinstance(content, list):
         content = "\n".join(str(x.get("text", "")) for x in content if isinstance(x, dict))
-    usage = payload.get("usage", {})
-    detail = usage.get("completion_tokens_details", {})
+    usage = payload.get("usage") or {}
+    detail = usage.get("completion_tokens_details") or {}
     return {"content":str(content or ""), "prompt_tokens":usage.get("prompt_tokens"),
             "completion_tokens":usage.get("completion_tokens"),
             "provider_cost":usage.get("cost"),
