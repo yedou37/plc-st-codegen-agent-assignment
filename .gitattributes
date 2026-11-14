@@ -1,0 +1,4 @@
+# Hashes archived from Windows checkouts and IDE runs.
+st/runs/**/*.st text eol=crlf
+tests/structured_text/runtime_suites/*.json text eol=crlf
+experiments/ide_simulation_review/targeted_repairs/*.st text eol=lf
